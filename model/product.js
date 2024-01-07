@@ -1,0 +1,20 @@
+const mongoose = require("mongoose");
+const Schema = mongoose.Schema;
+
+const productSchema = new Schema({
+  owner: {
+    type: Schema.Types.ObjectId,
+    required: true,
+    ref: "User",
+  },
+  genericName: { type: String, required: true },
+  brandName: { type: String, required: true },
+  strength: { type: String, required: true },
+  expiryDate: { type: Date, default: Date.now() },
+  date: { type: Date, default: Date.now() },
+  manufacturer: { type: String, required: true },
+  productImage: [{ type: String, required: true }],
+  locationOfPharmacy: { type: String, required: true },
+});
+
+module.exports = mongoose.model("Product", productSchema);
