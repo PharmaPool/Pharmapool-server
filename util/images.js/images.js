@@ -1,4 +1,6 @@
 const cloudinary = require("cloudinary").v2;
+const { generateId } = require("../idGenerator");
+const error = require("../error-handling/errorHandler");
 
 cloudinary.config({
   cloud_name: process.env.CLOUD_NAME,
@@ -7,7 +9,29 @@ cloudinary.config({
 });
 
 module.exports = {
-    uploadImage: async (public_id) => {
-        
-    }
-}
+  uploadImage: async (image) => {
+    const public_id = generateId();
+    let imageUrl, imageId;
+    await cloudinary.uploader.upload(
+      image,
+      { public_id: `${public_id}` },
+      (err, result) => {
+        if (err) error.errorHandler(res, "Image not uploaded", "image");
+        console.log("file uploaded to cloudinary");
+
+        imageUrl = result.url;
+        imageId = result.public_id;
+      }
+    );
+    return { imageUrl, imageId };
+  },
+  removeImage: async (public_id) => {
+    await cloudinary.uploader.destroy(
+      public_id,
+      { invalidate: true, resource_type: "image" },
+      (err, result) => {
+        if (err) error.errorHandler(res, "Image not deleted", "image");
+      }
+    );
+  },
+};
