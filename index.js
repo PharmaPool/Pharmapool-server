@@ -49,7 +49,7 @@ app.use((req, res, next) => {
 // Endpoints
 app.use("/auth", authRoutes);
 // app.use("/feed", feedRoutes);
-// app.use("/user", userRoutes);
+app.use("/user", userRoutes);
 // app.use("/profile", profileRoutes);
 
 app.use((req, res, next) => {

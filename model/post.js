@@ -7,11 +7,9 @@ const postSchema = new Schema(
     postImage: {
       imageUrl: {
         type: String,
-        required: false,
       },
       imageId: {
         type: Schema.Types.ObjectId,
-        required: false,
       },
     },
     edited: Date,
@@ -26,11 +24,6 @@ const postSchema = new Schema(
         ref: "User",
       },
     ],
-    privacy: {
-      type: String,
-      required: true,
-      default: "friends",
-    },
     comments: [
       {
         user: {

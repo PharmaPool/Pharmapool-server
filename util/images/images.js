@@ -17,7 +17,6 @@ module.exports = {
       { public_id: `${public_id}` },
       (err, result) => {
         if (err) error.errorHandler(res, "Image not uploaded", "image");
-        console.log("file uploaded to cloudinary");
 
         imageUrl = result.url;
         imageId = result.public_id;
