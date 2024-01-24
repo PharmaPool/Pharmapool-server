@@ -24,7 +24,7 @@ module.exports = {
     );
     return { imageUrl, imageId };
   },
-  removeImage: async (public_id) => {
+  removeImage: async (res, public_id) => {
     await cloudinary.uploader.destroy(
       public_id,
       { invalidate: true, resource_type: "image" },

@@ -159,7 +159,7 @@ module.exports.deletePost = async (req, res, next) => {
 
   try {
     // Check if user is authenticated
-    if (!req.isAuth) error.errorHandler(res, "not authorized", "user");
+    // if (!req.isAuth) error.errorHandler(res, "not Authorized", "user");
 
     const user = await userExists("id", userId);
     const post = await getPost(postId);
@@ -176,9 +176,8 @@ module.exports.deletePost = async (req, res, next) => {
 
     // Check if post has image
     const postImage = post.postImage;
-
-    if (postImage) {
-      removeImage(postImage.imageId);
+    if (postImage.imageId) {
+      await removeImage(res, postImage.imageId);
     }
 
     // Loop through post comments for all comments with images and remove them
@@ -206,7 +205,7 @@ module.exports.deletePost = async (req, res, next) => {
     });
 
     // Send response to client
-    res.status(201).json({ message: "post deleted successfully", post });
+    res.status(201).json({ message: "post deleted successfully" });
   } catch (err) {
     error.error(err, next);
   }
@@ -1095,7 +1094,7 @@ module.exports.getChat = async (req, res, next) => {
 };
 
 /**************************
- * Get Use Friend Request *
+ * Get User Friend Request *
  **************************/
 module.exports.getFriendRequests = async (req, res, next) => {
   const userId = req.body.userId;

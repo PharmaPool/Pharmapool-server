@@ -37,7 +37,7 @@ const userSchema = new Schema(
           "https://res.cloudinary.com/dex0mkckw/image/upload/v1704787280/m2wguhgput2td9gypin8.png",
       },
       imageId: {
-        type: Schema.Types.ObjectId,
+        type: String,
         // required: true,
         default: "m2wguhgput2td9gypin8",
       },
@@ -48,7 +48,7 @@ const userSchema = new Schema(
         // required: true,
       },
       imageId: {
-        type: Schema.Types.ObjectId,
+        type: String,
         // required: true,
       },
     },
