@@ -180,6 +180,13 @@ const userSchema = new Schema(
   }
 );
 
-userSchema.virtual("fullName").get(() => `${this.firstName} ${this.lastName}`);
+userSchema
+  .virtual("fullName")
+  .get(() => `${this.firstName} ${this.lastName}`)
+  .set(function (newName) {
+    var nameParts = newName.split(" ");
+    this.firstName = nameParts[0];
+    this.lastName = nameParts[1];
+  });
 
 module.exports = mongoose.model("User", userSchema);
