@@ -1,4 +1,5 @@
 const Chat = require("../model/chat");
+const ChatRoom = require("../model/chatroom")
 
 const error = require("./error-handling/errorHandler");
 
@@ -15,4 +16,12 @@ module.exports = {
 
     if (!validUser) error.errorHandler(403, "Not authorized");
   },
+  validAdmin: async (res, chat, userId) => {
+    if (chat.admin.toString() === userId.toString()) {
+      return true
+    } else {
+      error.errorHandler(res, "only admin can add members", "admin")
+      return
+    }
+  }
 };

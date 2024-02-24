@@ -78,7 +78,7 @@ module.exports = {
     // Create notification message
     const notifyMessage = {
       payload: {
-        originalId: post_id,
+        originalId: postId,
         content: post.content,
         alertType: "like",
         sourcePost: sourcePost._id,

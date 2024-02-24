@@ -78,7 +78,7 @@ module.exports.updateUserFullname = async (req, res, next) => {
     // Return response to client
     res
       .status(200)
-      .json({ message: "profile updated successfully", updated: user.details });
+      .json({ message: "profile updated successfully", updated: user });
   } catch (err) {
     error.error(err, next);
   }
@@ -93,7 +93,7 @@ module.exports.updateProfileDetails = async (req, res, next) => {
     about = req.body.about,
     state = req.body.state,
     address = req.body.address,
-    phoneNumber = req.body.phone;
+    phoneNumber = req.body.phoneNumber;
 
   try {
     // Get and validate user
@@ -117,6 +117,9 @@ module.exports.updateProfileDetails = async (req, res, next) => {
   }
 };
 
+/****************
+ * Change Image *
+ ****************/
 module.exports.changeImage = async (req, res, next) => {
   const userId = req.params.userId,
     type = req.body.type;
@@ -143,7 +146,7 @@ module.exports.changeImage = async (req, res, next) => {
     }
 
     let imageUrl, imageId;
-    if (uploadedImagge) {
+    if (uploadedImage) {
       imageUrl = uploadedImage.imageUrl;
       imageId = uploadedImage.imageId;
     }

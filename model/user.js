@@ -162,11 +162,18 @@ const userSchema = new Schema(
         required: true,
         default: 0,
       },
-      content: [
+      singlechatcontent: [
         {
           type: Schema.Types.ObjectId,
           required: true,
           ref: "Chat",
+        },
+      ],
+      chatroomcontent: [
+        {
+          type: Schema.Types.ObjectId,
+          required: true,
+          ref: "ChatRoom",
         },
       ],
     },

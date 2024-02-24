@@ -5,13 +5,14 @@ const io = require("../util/socket");
 // Models
 const Post = require("../model/post"),
   User = require("../model/user"),
-  Chat = require("../model/chat");
+  Chat = require("../model/chat"),
+  ChatRoom = require("../model/chatroom");
 
 // Helper functions
 const error = require("../util/error-handling/errorHandler");
 const { userExists, getUser } = require("../util/user");
 const { getPost, populatePost } = require("../util/post");
-const { getChat, validChatUser } = require("../util/chat");
+const { getChat, validChatUser, validAdmin } = require("../util/chat");
 const { notifyFriend, notifyFriendRequest } = require("../util/notifications");
 const { uploadImage, removeImage } = require("../util/images/images");
 
@@ -251,23 +252,21 @@ module.exports.sendRequest = async (req, res, next) => {
     // Check if currentUser doesn't already have a pending request
     if (
       currentUser.requests.content.find(
-        (req) => req.user.toString() === friendId
+        (req) => req.user.toString() === friendId.toString()
       )
     ) {
-      error.errorHandler(
-        res,
-        "you already have a pending request from this user",
-        "friend"
-      );
+      res.status(500).json({ message: "you already have a pending request" });
+      return;
     }
 
     // Check if requestingUser doesn't already have same pending request
     const existingRequest = receivingUser.requests.content.find(
-      (item) => item.user.toString() === userId
+      (item) => item.user.toString() === userId.toString()
     );
 
     if (existingRequest) {
-      error.errorHandler(res, "you already have a pending request", "user");
+      res.status(500).json({ message: "request sent already" });
+      return;
     }
 
     // Check if users aren't friends already
@@ -277,6 +276,7 @@ module.exports.sendRequest = async (req, res, next) => {
 
     if (isFriends) {
       error.errorHandler(res, "already friends with this user", "user");
+      return;
     }
 
     // Continue if no errors
@@ -291,6 +291,7 @@ module.exports.sendRequest = async (req, res, next) => {
 
     // Add currentUser to receivingUser requests array
     receivingUser.requests.content.push(contentData);
+    receivingUser.requests.count += 1;
     await receivingUser.save();
 
     io.getIO().emit("notification");
@@ -362,9 +363,19 @@ module.exports.acceptRequest = async (req, res, next) => {
     // Get requestingUser profile
     const requestingUser = await getUser(friendId);
 
+    // check if friends already
+    if (
+      currentUser.friends.find(
+        (user) => user._id.toString() === friendId.toString()
+      )
+    ) {
+      error.errorHandler(res, "you are friends already", "friend");
+      return;
+    }
+
     // Add both users to friends array
-    currentUser.friends.push(requestingUser);
-    requestingUser.friends.push(currentUser);
+    await currentUser.friends.push(requestingUser);
+    await requestingUser.friends.push(currentUser);
 
     // Remove notification from currentUser
     currentUser.requests.count = currentUser.requests.count - 1;
@@ -513,7 +524,7 @@ module.exports.sendMessage = async (req, res, next) => {
         date: Date.now(),
       });
       // Add count to messages for recipient user
-      friend.messages.count = friend.messages.count + 1;
+      friend.messages.count += 1;
 
       await friend.save();
 
@@ -524,13 +535,15 @@ module.exports.sendMessage = async (req, res, next) => {
 
       // Create new chat object
       const chat = new Chat({
-        user: [{ userId: friendId }, { userId: userId }],
+        users: [{ userId: friendId }, { userId: userId }],
         messages: [{ user: userId, message }],
       });
 
       // Add created messages to both currentUser and friend messages array
-      user.messages.content.unshift(chat);
-      friend.messages.content.unshift(chat);
+      user.messages.singlechatcontent.unshift(chat);
+      friend.messages.singlechatcontent.unshift(chat);
+
+      friend.messages.count += 1;
 
       // Save update
       await chat.save();
@@ -546,30 +559,42 @@ module.exports.sendMessage = async (req, res, next) => {
 };
 
 /*************************
- * Add Friend to Message *
+ * Add Friend to Chatroom *
  *************************/
-module.exports.addFriendToMessage = async (req, res, next) => {
+module.exports.addFriendToChatroom = async (req, res, next) => {
   const userId = req.body.userId,
     chatId = req.body.chatId,
     friendId = req.body.friendId;
 
   try {
     // Get message and verify it still exists
-    const chat = await getChat(chatId);
+    const chat = await ChatRoom.findById(chatId);
+
+    if (!chat) {
+      error.errorHandler(res, "chat room does not exist", "chatroom");
+      return;
+    }
 
     // Verify current chat to see if current requesting user is allowed to add in new users
-    validateChatUser(chat, userId);
+    // validAdmin(res, chat, userId);
+    if (chat.admin.toString() !== userId.toString()) {
+      error.errorHandler(res, "only admin can add new members", "admin");
+      return;
+    }
 
     const user = await getUser(userId);
 
-    if (!user.friends.includes(friendId))
+    if (!user.friends.includes(friendId)) {
       error.errorHandler(res, "friend not found", "friend");
+      return;
+    }
 
     // Check if friend isn't already in the chat
     if (
       chat.users.find((user) => user.userId.toString() === friendId.toString())
     ) {
       error.errorHandler(res, "this user is already in the chatroom", "friend");
+      return;
     }
 
     // Continue if there are no errors
@@ -580,7 +605,7 @@ module.exports.addFriendToMessage = async (req, res, next) => {
     const friend = await getUser(friendId, "messages");
 
     // Add current chatId to friend messages array
-    friend.messages.content.unshift(chatId);
+    friend.messages.chatroomcontent.unshift(chatId);
 
     // Add to message count
     friend.messages.count = friend.messages.count + 1;
@@ -601,62 +626,66 @@ module.exports.addFriendToMessage = async (req, res, next) => {
   }
 };
 
-/******************************
- * Remove Friend from Message *
- ******************************/
-module.exports.removeFriendFromMessage = async (req, res, next) => {
+/*******************************
+ * Remove Friend from Chatroom *
+ *******************************/
+module.exports.removeFriendFromChatroom = async (req, res, next) => {
   const userId = req.body.userId,
     chatId = req.body.chatId,
-    friendId = req.body.friendId,
-    userItemId = req.body._id;
+    friendId = req.body.friendId;
 
   try {
     // Get and validate chat
-    const chat = await getChat(chatId);
+    const chat = await ChatRoom.findById(chatId);
 
     // Verify current chat to see if current requesting user is allowed to remove user
-    validChatUser(chat, userId);
+    if (chat.admin.toString() !== userId.toString()) {
+      error.errorHandler(res, "only admin can remove members", "admin");
+      return;
+    }
 
     const user = await getUser(userId);
 
     // Check if friend still exists in user's friend list
-    if (!user.friends.includes(friendId))
+    if (!user.friends.includes(friendId)) {
       error.errorHandler(res, "friend not found", "friend");
+      return;
+    }
 
     // Check if friend is still in current chat
     if (
       !chat.users.find((user) => user.userId.toString() === friendId.toString())
     ) {
       error.errorHandler(res, "user not currently in chat", "user");
+      return;
     }
 
     // Continue if there are no errors
 
     // Pull friend from chat users array
-    await chat.users.pull(userItemId);
+    await chat.users.pull({ userId: friendId });
 
     const friend = await getUser(friendId, "messages");
 
     // Remove chatId from friend messages array
-    friend.messages.content.pull(chatId);
+    friend.messages.chatroomcontent.pull(chatId);
 
     // Save updates
     await chat.save();
     await friend.save();
 
     // send response to client
-    res.status(200).json({ message: "user removed from chat" });
+    res.status(200).json({ message: "user removed from chatroom" });
   } catch (err) {
     error.error(err, next);
   }
 };
 
-/**************
- * Leave Chat *
- **************/
-module.exports.leaveChat = async (req, res, next) => {
+/*******************
+ * Leave Chat Room *
+ *******************/
+module.exports.leaveChatroom = async (req, res, next) => {
   const chatId = req.body.chatId,
-    userItemId = req.body.userItemId,
     userId = req.body.userId;
 
   try {
@@ -664,18 +693,23 @@ module.exports.leaveChat = async (req, res, next) => {
     const user = await getUser(userId, "messages");
 
     // Get and validate current chat message
-    const chat = await getChat(chatId);
+    const chat = await ChatRoom.findById(chatId);
 
     // Check if user is currently in the chat
-    validChatUser(chat, userId);
+    if (
+      !chat.users.find((user) => user.userId.toString() === userId.toString())
+    ) {
+      error.errorHandler(res, "not authorized", "user");
+      return;
+    }
 
     // Continue if there are no errors
 
     // Remove current user from chat users array
-    chat.users.pull(userItemId);
+    chat.users.pull({ userId: userId });
 
     // Remove chatId from current user messages array
-    user.messages.content.pull(chatId);
+    user.messages.chatroomcontent.pull(chatId);
 
     // Save changes
     await chat.save();
@@ -692,7 +726,7 @@ module.exports.leaveChat = async (req, res, next) => {
     io.getIO().emit("messages", { action: "leave chat", chatId });
 
     // Send response to client
-    res.status(200).json({ message: "you have left the chat" });
+    res.status(200).json({ message: "you have left the chatroom" });
   } catch (err) {
     error.error(err, next);
   }
@@ -702,50 +736,75 @@ module.exports.leaveChat = async (req, res, next) => {
  * Get Messages *
  ****************/
 module.exports.getMessages = async (req, res, next) => {
-  const userId = req.params.userId;
+  const userId = req.params._id;
 
   try {
     // Get and validate user
-    const user = await User.findById(userId, "messages").populate({
-      path: "messages.content",
-      populate: [
-        {
-          path: "users.userId",
-          select: "firstName lastName fullName profileImage",
-        },
-        {
-          path: "messages.user",
-          select: "firstName lastName fullName profileImage",
-        },
-      ],
-    });
+    const user = await User.findById(userId, "messages")
+      .populate({
+        path: "messages.singlechatcontent",
+        populate: [
+          {
+            path: "users.userId",
+            select: "firstName lastName fullName profileImage",
+          },
+          {
+            path: "messages.user",
+            select: "firstName lastName fullName profileImage",
+          },
+        ],
+      })
+      .populate({
+        path: "messages.chatroomcontent",
+        populate: [
+          {
+            path: "users.userId",
+            select: "firstName lastName fullName profileImage",
+          },
+          {
+            path: "messages",
+          },
+        ],
+      });
 
-    if (!user) error.errorHandler(res, "no user found", "user");
+    if (!user) {
+      error.errorHandler(res, "no user found", "user");
+      return;
+    }
 
     // Send response to client
     res.status(200).json({
       message: "messages fetched successfully",
-      messages: user.messages.content,
+      messages: user.messages,
     });
   } catch (err) {
     error.error(err, next);
   }
 };
 
-/*************
- * Messaging *
- *************/
-module.exports.messaging = async (req, res, next) => {
+/**************************
+ * Messaging in Chat Room *
+ **************************/
+module.exports.messageChatroom = async (req, res, next) => {
   const userId = req.body.userId,
-    chatId = req.body.chatId,
+    chatId = req.params._id,
     message = req.body.message;
 
   try {
     // Get and validate chat
-    const chat = await getChat(chatId);
+    const chat = await ChatRoom.findById(chatId);
+    if (!chat) {
+      error.errorHandler(err, "chatroom not found", "chat");
+      return;
+    }
 
     // Check if user is valid
-    validChatUser(chat, userId);
+    if (
+      !chat.users.find((user) => user.userId.toString() === userId.toString())
+    ) {
+      error.errorHandler(err, "not authorized", "user");
+      return;
+    }
 
     // Check input validation
     const validationError = validationResult(req);
@@ -758,6 +817,7 @@ module.exports.messaging = async (req, res, next) => {
     const newMessage = {
       user: userId,
       message,
+      date: Date.now(),
     };
 
     // Send message notification to all users in current chat except the current user
@@ -766,21 +826,22 @@ module.exports.messaging = async (req, res, next) => {
     forEach(chatUsers, async (item) => {
       const user = await User.findById(item.userId);
 
-      if (user && item.userId.toString() !== userId.toString()) {
+      if (user._id.toString() && item.userId.toString() !== userId.toString()) {
         // Send message notification to each valid user
 
         //  Check if user doesn't already have current chatId in their messages content array
-        const existingChatNotification = user.messages.content.includes(chatId);
+        const existingChatNotification =
+          user.messages.chatroomcontent.includes(chatId);
 
         if (existingChatNotification) {
           // Pull existing chat from user
-          await user.messages.content.pull(chatId);
+          await user.messages.chatroomcontent.pull(chatId);
 
           // Unshift new chat content to user
-          await user.messages.content.unshift(chatId);
+          await user.messages.chatroomcontent.unshift(chatId);
         } else {
           // Unshift new chat content to user
-          await user.messages.content.unshift(chatId);
+          await user.messages.chatroomcontent.unshift(chatId);
         }
 
         // Add to messages count on user
@@ -804,97 +865,55 @@ module.exports.messaging = async (req, res, next) => {
   }
 };
 
-/******************
- * Create Message *
- ******************/
-module.exports.createMessage = async (req, res, next) => {
+/*******************
+ * Create Chatroom *
+ *******************/
+module.exports.createChatroom = async (req, res, next) => {
   const userId = req.body.userId,
-    recipients = req.body.recipients,
-    message = req.body.message;
+    title = req.body.title;
 
   try {
-    // Check for validation errors
-    const validationError = validationResult(req);
-    error.validationError(validationError);
-
-    // Get length of recipients
-    const numberOfRecipients = recipients.length;
-
-    // Check if there isn't already an existing chat with selected users
-    const chat = await Chat.findOne({
-      users: { $size: numberOfRecipients },
-      "users.userId": { $all: recipients },
-    });
-
-    // Initialize chatId
-    let chatId;
-
-    if (!chat) {
-      // Create new chat instance
-      const newChat = new Chat({
-        users: recipients.map((user) => {
-          userId: user;
-        }),
-        messages: [
-          {
-            user: userId,
-            message,
-          },
-        ],
-      });
-
-      chatId = newChat._id.toString();
-
-      // Save changes back to database
-      await newChat.save();
-    } else {
-      // Send chat to existing chat instance
-      chat.messages.push({
-        user: userId,
-        message,
-      });
-
-      chatId = chat._id.toString();
-
-      // Save chat updates back to database
-      await chat.save();
+    // check user
+    const user = await User.findById(userId);
+    if (!user) {
+      error.errorHandler(res, "not authorized", "user");
     }
 
-    // Add new chatId to currentUser and all recipients
+    const existingRoom = await ChatRoom.findOne({ title });
 
-    // Loop through recipients array and add new chatId to messages array
-    recipients.forEach(async (id) => {
-      const user = await getUser(id);
+    if (existingRoom) {
+      error.errorHandler(res, "chat room exist already", "chatroom");
+      return;
+    }
 
-      // Add to messages count for all recipients except the sender
-      if (user._id.toString() === chatId.toString()) {
-        user.messages.count = user.messages.count + 1;
-      }
+    // continue if there are no errors
 
-      // Check for existing messages content
-      const existingMessageContent = user.messages.content.find(
-        (item) => item.toString() === chatId.toString()
-      );
-
-      if (existingMessageContent) {
-        await user.messages.content.pull(existingMessageContent);
-
-        user.messages.content.unshift(chatId);
-      } else {
-        user.messages.content.unshift(chatId);
-      }
-
-      await user.save();
+    // create new chat room
+    const newChatRoom = new ChatRoom({
+      title,
+      admin: userId,
+      users: [{ userId: userId }],
     });
 
+    // save chat room
+    await newChatRoom.save();
+
+    // add chatroom to user chatroom array
+    await user.messages.chatroomcontent.push(newChatRoom._id);
+
+    // save changes
+    await user.save();
+
     io.getIO().emit("notification");
-    io.getIO().emit("messages", {
-      action: "send message",
-      chatId,
+    io.getIO().emit("chat room", {
+      action: "create chat room",
+      newChatRoom,
     });
 
     // Send response to client
-    res.status(200).json({ message: "message sent" });
+    res
+      .status(200)
+      .json({ message: "chat room created successfully", newChatRoom });
   } catch (err) {
     error.error(err, next);
   }
@@ -904,7 +923,7 @@ module.exports.createMessage = async (req, res, next) => {
  * Get User Profile *
  ********************/
 module.exports.getUserProfile = async (req, res, next) => {
-  const userId = req.params.userId;
+  const userId = req.params._id;
 
   try {
     // Get and validate user
@@ -921,10 +940,13 @@ module.exports.getUserProfile = async (req, res, next) => {
       });
 
     // Check if user is undefined
-    if (!user) error.errorHandler(404, "user not found");
+    if (!user) {
+      error.errorHandler(404, "user not found");
+      return;
+    }
 
     // Send response to client
-    res.status(200).json({ message: "user fetched successfully" });
+    res.status(200).json({ message: "user fetched successfully", user });
   } catch (err) {
     error.error(err, next);
   }
@@ -934,7 +956,7 @@ module.exports.getUserProfile = async (req, res, next) => {
  * Get User Friends *
  ********************/
 module.exports.getUserFriends = async (req, res, next) => {
-  const userId = req.params.userId;
+  const userId = req.params._id;
 
   try {
     // Get and validate user
@@ -943,7 +965,10 @@ module.exports.getUserFriends = async (req, res, next) => {
       "friends firstName lastName"
     ).populate("friends", "firstName lastName profileImage");
 
-    if (!user) error.errorHandler(res, "user not found", "user");
+    if (!user) {
+      error.errorHandler(res, "user not found", "user");
+      return;
+    }
 
     // Continue if there are no errors
 
@@ -958,13 +983,16 @@ module.exports.getUserFriends = async (req, res, next) => {
  * Clear Message Count *
  ***********************/
 module.exports.clearMessageCount = async (req, res, next) => {
-  const userId = req.body.userId;
+  const userId = req.params._id;
 
   try {
     const user = await User.findById(userId, "messages");
 
     // Check if user is undefined
-    if (!user) error.errorHandler(res, "user not found", "user");
+    if (!user) {
+      error.errorHandler(res, "user not found", "user");
+      return;
+    }
 
     // Reset user message count
     user.messages.count = 0;
@@ -991,7 +1019,10 @@ module.exports.clearFriendRequestCount = async (req, res, next) => {
     const user = await User.findById(userId, "requests");
 
     // Check if user is undefined
-    if (!user) error.errorHandler(res, "user not found", "user");
+    if (!user) {
+      error.errorHandler(res, "user not found", "user");
+      return;
+    }
 
     // Continue if there are no errors
 
@@ -1027,37 +1058,12 @@ module.exports.searchUser = async (req, res, next) => {
       "firstName lastName fullName profileImage"
     );
 
-    res.status(200).json(user);
-  } catch (err) {
-    error.error(err, next);
-  }
-};
+    if (!user) {
+      error.errorHandler(err, "user not found", "user");
+      return;
+    }
 
-/*********************
- * Search For Friend *
- *********************/
-module.exports.searchFriend = async (req, res, next) => {
-  const userId = req.params.userId,
-    name = req.body.name;
-
-  try {
-    // Check if user is authenticated
-    if (!req.isAuth) error.errorHandler(res, "not authorized", "user");
-
-    // Get user
-    const user = await User.findById(userId).friends.find(
-      {
-        $or: [
-          { firstName: { $regex: name, $options: "i" } },
-          { lastName: { $regex: name, $options: "i" } },
-        ],
-      },
-      "firstName lastName fullName profileImage"
-    );
-
-    if (!user) error.error(res, "user not found", "user");
-
-    res.status(200).json(user);
+    res.status(200).json({ user });
   } catch (err) {
     error.error(err, next);
   }
@@ -1066,7 +1072,7 @@ module.exports.searchFriend = async (req, res, next) => {
 /*******************
  * Get Single Chat *
  *******************/
-module.exports.getChat = async (req, res, next) => {
+module.exports.getSingleChat = async (req, res, next) => {
   const chatId = req.params.chatId,
     userId = req.body.userId;
 
@@ -1097,7 +1103,7 @@ module.exports.getChat = async (req, res, next) => {
  * Get User Friend Request *
  **************************/
 module.exports.getFriendRequests = async (req, res, next) => {
-  const userId = req.body.userId;
+  const userId = req.params._id;
 
   try {
     const user = await User.findById(userId)

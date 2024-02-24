@@ -22,7 +22,7 @@ module.exports = {
   },
   getExistingComment: (post, commentId) => {
     const existingComment = post.comments.find(
-      (comment) => comment_id.toString() === commentId
+      (comment) => comment._id.toString() === commentId.toString()
     );
 
     if (!existingComment) error.errorHandler(404, "Comment does not exist");
@@ -31,7 +31,7 @@ module.exports = {
   },
   getReplyIndex: (post, commentIndex, replyId) => {
     const replyIndex = post.comments[commentIndex].replies.findIndex(
-      (reply) => reply_id.toString() === replyId.toString()
+      (reply) => reply._id.toString() === replyId.toString()
     );
 
     if (replyIndex < 0) error.errorHandler(404, "Comment not found", "reply");

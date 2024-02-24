@@ -1,22 +1,19 @@
 const nodemailer = require("nodemailer");
 
-const nodemailer = (email, subject, message, username, link, btnText) => {
-  const transporter = nodemailer.createTransport({
-    host: "host",
-    secure: true,
-    port: 465,
-    tls: {
-      ciphers: "SSLv3",
-    },
+const mailer = async(email, subject, message, username, link, btnText) => {
+  const transporter = await nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    secure: false,
+    port: 587,
     auth: {
-      user: "username",
-      pass: "password",
+      user: "wilsonzim566@gmail.com",
+      pass: "*zIm-1@#",
     },
-    from: "sender",
+    from: "wilsonzim566@gmail.com",
   });
 
   const mailOptions = {
-    from: "<pharmapool@gmail.com>",
+    from: "<wilsonzim566@gmail.com>",
     to: email,
     subject: subject,
     html: `<h1>Dear ${username}</h1>
@@ -24,10 +21,10 @@ const nodemailer = (email, subject, message, username, link, btnText) => {
               <button style="font-size: large; width: 30%; height: 3rem; font-weight: bold; background-color: blue;" ><a href="${link}" style="text-decoration: none; color: white;">${btnText}</a></button>`,
   };
 
-  transporter.sendMail(mailOptions, (error, info) => {
+  await transporter.sendMail(mailOptions, (error, info) => {
     if (error) console.log(error);
     else console.log("email sent successfully: " + info.response);
   });
 };
 
-module.exports = nodemailer;
+module.exports = mailer;

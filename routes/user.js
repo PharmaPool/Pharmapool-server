@@ -8,7 +8,7 @@ const upload = multer({ dest: "../uploads" });
 
 // Posts Routes
 router.post("/post", upload.single("file"), userController.createPost);
-router.patch("/post", userController.updatePost);
+router.patch("/post", upload.single("file"), userController.updatePost);
 router.delete("/post", userController.deletePost);
 router.get("/posts", userController.getPosts);
 
@@ -28,29 +28,23 @@ router.post(
   userController.sendMessage
 );
 router.delete("/message", userController.clearMessageCount);
-router.post("/message/friend", userController.addFriendToMessage);
-router.delete("/message/friend", userController.removeFriendFromMessage);
-router.post("/message/leave", userController.leaveChat);
-router.post(
-  "/message/create",
-  [
-    body("message").not().isEmpty().withMessage("Please enter a message"),
-    body("recipients")
-      .not()
-      .isEmpty()
-      .withMessage("please select a recipient to send message to"),
-  ],
-  userController.createMessage
-);
+router.post("/chatroom/add", userController.addFriendToChatroom);
+router.delete("/chatroom/remove", userController.removeFriendFromChatroom);
+router.delete("/chatroom/leave", userController.leaveChatroom);
+router.post("/chatroom/create", userController.createChatroom);
 
-router.get("/chat/:_id", userController.getMessages);
+router.get("/messages/:_id", userController.getMessages);
+router.get("/singleChat", userController.getSingleChat)
 router.post(
-  "/chat/:_id",
+  "/chatroom/:_id",
   [body("message", "message can't be empty").not().isEmpty()],
-  userController.messaging
+  userController.messageChatroom
 );
+router.delete("/messages/count/:_id", userController.clearMessageCount)
 
-router.post("/search", userController.searchUser)
-router.post("/search/:_id", userController.searchFriend)
+router.get("/profile/:_id", userController.getUserProfile);
+router.get("/friends/:_id", userController.getUserFriends)
+
+router.post("/search", userController.searchUser);
 
 module.exports = router;

@@ -35,11 +35,11 @@ const postSchema = new Schema(
         postImage: {
           imageUrl: {
             type: String,
-            required: true,
+            // required: true,
           },
           imageId: {
             type: Schema.Types.ObjectId,
-            required: true,
+            // required: true,
           },
         },
         createdAt: {
@@ -64,11 +64,11 @@ const postSchema = new Schema(
             postImage: {
               imageUrl: {
                 type: String,
-                required: true,
+                // required: true,
               },
               imageId: {
                 type: Schema.Types.ObjectId,
-                required: true,
+                // required: true,
               },
             },
             createdAt: {

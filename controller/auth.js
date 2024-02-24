@@ -11,6 +11,7 @@ const User = require("../model/user");
 const error = require("../util/error-handling/errorHandler");
 
 const { userExists } = require("../util/user");
+const mailer = require("../util/nodemailer");
 
 /**************
  * User Signup*
@@ -45,6 +46,15 @@ module.exports.userSignup = async (req, res, next) => {
         details: { email, phoneNumber, gender, state, address },
         password: hashedPassword,
       });
+
+      await mailer(
+        email,
+        "sign up verification",
+        "Welcome to Pharmapool. Kindly click the button to verify your account",
+        `${firstName} ${lastName}`,
+        "https://facebook.com",
+        "verify"
+      );
 
       // Save user in database
       const newUser = await user.save();
@@ -139,6 +149,7 @@ module.exports.passwordReset = async (req, res, next) => {
     res.status(200).json({
       message: "A password reset link has been sent to your email",
       type: "password reset",
+      resetToken,
     });
   } catch (err) {
     error.error(err);
@@ -149,17 +160,17 @@ module.exports.passwordReset = async (req, res, next) => {
  * Get Password Token *
  ***********************/
 module.exports.getPasswordToken = async (req, res, next) => {
-  const token = req.params.resetToken;
+  const email = req.params.email;
 
   try {
     // Check for matching token on a user
     const user = await User.findOne(
-      { resetToken: token },
+      { "details.email": email },
       "resetToken resetExpiration"
     );
 
     // Check if user is undefined
-    if (!user) error.errorHandler(res, "Invalid Token", "token");
+    if (!user) error.errorHandler(res, "Invalid user", "token");
 
     // Check if token has expired
     if (user.resetExpiration < Date.now()) {
@@ -172,7 +183,7 @@ module.exports.getPasswordToken = async (req, res, next) => {
       error.errorHandler(res, "password reset session has expired", "message");
     }
 
-    res.status(200).json({ token });
+    res.status(200).json({ token: user.resetToken });
   } catch (err) {
     error.error(err, next);
   }
@@ -182,8 +193,8 @@ module.exports.getPasswordToken = async (req, res, next) => {
  * Password Change *
  ******************/
 module.exports.passwordChange = async (req, res, next) => {
-  const password = req.body.password,
-    resetToken = req.body.resetToken;
+  const resetToken = req.params.resetToken,
+    password = req.body.password;
 
   try {
     // Get user
