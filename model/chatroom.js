@@ -10,11 +10,9 @@ const chatroomSchema = new Schema({
   },
   users: [
     {
-      userId: {
-        type: Schema.Types.ObjectId,
-        required: true,
-        ref: "User",
-      },
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "User",
     },
   ],
   messages: [

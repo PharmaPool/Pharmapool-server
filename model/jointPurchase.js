@@ -19,8 +19,8 @@ const jointPurchaseSchema = new Schema({
   },
   status: {
     type: Boolean,
-    required: true,
   },
+  deadline: { type: String, required: true },
 });
 
-module.exports = mongoose.model("JointPurchase", jointPurchaseSchema)
+module.exports = mongoose.model("JointPurchase", jointPurchaseSchema);

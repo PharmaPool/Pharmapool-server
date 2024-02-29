@@ -15,6 +15,7 @@ const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/user");
 const feedRoutes = require("./routes/feed");
 const profileRoutes = require("./routes/profile");
+const businessRoutes = require("./routes/business")
 
 const app = express();
 
@@ -51,6 +52,7 @@ app.use("/auth", authRoutes);
 app.use("/feed", feedRoutes);
 app.use("/user", userRoutes);
 app.use("/profile", profileRoutes);
+app.use("/business", businessRoutes)
 
 app.use((req, res, next) => {
   if (req.originalUrl && req.originalUrl.split("/").pop() === "favicon.ico") {

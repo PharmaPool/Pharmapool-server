@@ -800,7 +800,7 @@ module.exports.messageChatroom = async (req, res, next) => {
 
     // Check if user is valid
     if (
-      !chat.users.find((user) => user.userId.toString() === userId.toString())
+      !chat.users.find((user) => user._id.toString() === userId.toString())
     ) {
       error.errorHandler(err, "not authorized", "user");
       return;
@@ -824,7 +824,7 @@ module.exports.messageChatroom = async (req, res, next) => {
     const chatUsers = chat.users;
 
     forEach(chatUsers, async (item) => {
-      const user = await User.findById(item.userId);
+      const user = await User.findById(item._id);
 
       if (user._id.toString() && item.userId.toString() !== userId.toString()) {
         // Send message notification to each valid user
@@ -892,7 +892,7 @@ module.exports.createChatroom = async (req, res, next) => {
     const newChatRoom = new ChatRoom({
       title,
       admin: userId,
-      users: [{ userId: userId }],
+      users: [{ userId }],
     });
 
     // save chat room

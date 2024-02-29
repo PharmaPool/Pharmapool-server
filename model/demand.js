@@ -8,6 +8,7 @@ const demandSchema = new Schema({
   },
   content: {
     type: String,
+    required: true,
   },
   product: {
     type: Schema.Types.ObjectId,
@@ -19,7 +20,7 @@ const demandSchema = new Schema({
       price: { type: Number, required: true },
     },
   ],
-  status: { type: Boolean, required: true },
+  status: { type: Boolean, required: true, default: false },
 });
 
-module.exports = mongoose.model("Demand", demandSchema)
+module.exports = mongoose.model("Demand", demandSchema);

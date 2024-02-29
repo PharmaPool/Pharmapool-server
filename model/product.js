@@ -10,10 +10,10 @@ const productSchema = new Schema({
   genericName: { type: String, required: true },
   brandName: { type: String, required: true },
   strength: { type: String, required: true },
-  expiryDate: { type: Date, default: Date.now() },
+  expiryDate: { type: String },
   date: { type: Date, default: Date.now() },
   manufacturer: { type: String, required: true },
-  productImage: [{ type: String, required: true }],
+  productImage: [{ imageUrl: { type: String }, imageId: { type: String } }],
   locationOfPharmacy: { type: String, required: true },
 });
 

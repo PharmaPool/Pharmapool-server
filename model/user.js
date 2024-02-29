@@ -15,13 +15,6 @@ const userSchema = new Schema(
       type: String,
       required: true,
     },
-    products: [
-      {
-        type: Schema.Types.ObjectId,
-        required: true,
-        ref: "Product",
-      },
-    ],
     pharmacy: [
       {
         type: Schema.Types.ObjectId,
