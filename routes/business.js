@@ -37,6 +37,23 @@ router.post(
 );
 
 router.post(
+  "/saleondiscount/create/:_id",
+  businessController.createSaleAtDiscount
+);
+router.post(
+  "/saleondiscount/:_id",
+  businessController.addPartnerToSaleAtDiscount
+);
+router.delete(
+  "/saleondiscount/:_id",
+  businessController.removeInterestedPartnerFromSaleAtDiscount
+);
+router.patch(
+  "/saleondiscount/:_id",
+  businessController.changeSaleAtDiscountStatus
+);
+
+router.post(
   "/pharmacy/:_id",
   upload.single("file"),
   businessController.registerPharmacy

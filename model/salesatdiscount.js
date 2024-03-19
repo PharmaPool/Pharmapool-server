@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
-const demandSchema = new Schema({
+const salesAtDiscountSchema = new Schema({
   creator: {
     type: Schema.Types.ObjectId,
     ref: "User",
@@ -17,11 +17,11 @@ const demandSchema = new Schema({
   interestedPartners: [
     {
       user: { type: Schema.Types.ObjectId, ref: "User", required: true },
-      price: { type: Number, required: true },
+      quantity: { type: Number, required: true },
     },
   ],
   status: { type: Boolean, required: true, default: false },
   deadline: { type: String, required: true },
 });
 
-module.exports = mongoose.model("Demand", demandSchema);
+module.exports = mongoose.model("SaleOnDiscount", salesAtDiscountSchema);

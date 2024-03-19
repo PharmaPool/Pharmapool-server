@@ -15,6 +15,7 @@ const productSchema = new Schema({
   manufacturer: { type: String, required: true },
   productImage: [{ imageUrl: { type: String }, imageId: { type: String } }],
   locationOfPharmacy: { type: String, required: true },
+  quantity:{type:Number, required: true}
 });
 
 module.exports = mongoose.model("Product", productSchema);

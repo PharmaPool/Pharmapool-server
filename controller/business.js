@@ -5,6 +5,7 @@ const Demand = require("../model/demand");
 const JointPurchase = require("../model/jointPurchase");
 const User = require("../model/user");
 const ChatRoom = require("../model/chatroom");
+const Sale = require("../model/salesatdiscount");
 
 // middle wares
 const error = require("../util/error-handling/errorHandler");
@@ -23,7 +24,8 @@ module.exports.createProductDemand = async (req, res, next) => {
     manufacturer = req.body.manufacturer,
     locationOfPharmacy = req.body.locationOfPharmacy,
     content = req.body.content,
-    userId = req.params._id;
+    userId = req.params._id,
+    quantity = req.body.quantity;
 
   try {
     // validate user
@@ -50,6 +52,7 @@ module.exports.createProductDemand = async (req, res, next) => {
       expiryDate,
       date,
       manufacturer,
+      quantity,
       productImage: { imageUrl, imageId },
       locationOfPharmacy,
     });
@@ -242,7 +245,8 @@ module.exports.createJointPurchase = async (req, res, next) => {
     locationOfPharmacy = req.body.locationOfPharmacy,
     creator = req.params._id,
     content = req.body.content,
-    deadline = req.body.deadline;
+    deadline = req.body.deadline,
+    quantity = req.body.quantity;
 
   try {
     // validate user
@@ -645,6 +649,236 @@ module.exports.deletePharmacy = async (req, res, next) => {
     await user.save();
 
     res.status(200).json({ message: "pharmacy deleted successfully" });
+  } catch (err) {
+    error.error(err, next);
+  }
+};
+
+/***************************
+ * Create Sale at Discount *
+ ***************************/
+module.exports.createSaleAtDiscount = async (req, res, next) => {
+  const genericName = req.body.genericName,
+    brandName = req.body.brandName,
+    strength = req.body.strength,
+    expiryDate = req.body.expiryDate,
+    date = Date.now(),
+    manufacturer = req.body.manufacturer,
+    locationOfPharmacy = req.body.locationOfPharmacy,
+    creator = req.params._id,
+    content = req.body.content,
+    deadline = req.body.deadline,
+    quantity = req.body.quantity;
+
+  try {
+    // validate user
+    const user = await User.findById(creator);
+    if (!user) {
+      error.errorHandler(res, "not authorized", "user");
+      return;
+    }
+
+    // continue if there are no errors
+
+    // create product
+    const product = new Product({
+      owner: creator,
+      genericName,
+      brandName,
+      strength,
+      expiryDate,
+      date,
+      manufacturer,
+      locationOfPharmacy,
+      quantity,
+    });
+
+    // save product
+    await product.save();
+
+    // create sale
+    const sale = new Sale({
+      creator,
+      content,
+      product: product._id,
+      deadline,
+    });
+
+    // save sale
+    await sale.save();
+
+    io.getIO().emit("sale at discount", { action: "sale", sale });
+
+    res.status(200).json({ message: "sale at discount created successfully" });
+  } catch (err) {
+    error.error(err, next);
+  }
+};
+
+/***********************************
+ * Add Partner to Sale at Discount *
+ ***********************************/
+module.exports.addPartnerToSaleAtDiscount = async (req, res, next) => {
+  const saleId = req.params._id,
+    userId = req.body.userId,
+    quantity = req.body.quantity;
+
+  try {
+    // validate user
+    const user = await User.findById(userId);
+    if (!user) {
+      error.errorHandler(res, "not authorized", "user");
+      return;
+    }
+
+    // validate sale
+    const sale = await Sale.findById(saleId, "interestedPartners");
+    if (!sale) {
+      error.errorHandler(res, "sale not found", "sale");
+      return;
+    }
+
+    // validate quantity
+    if (quantity < 0) {
+      error.errorHandler(res, "please provide a valid quantity", "quantity");
+      return;
+    }
+
+    // continue if there are no errors
+
+    // add user to interested partners array
+    sale.interestedPartners.push({ user: user._id, quantity });
+
+    // save changes
+    await sale.save();
+
+    io.getIO().emit("sale", { action: "partner added", sale });
+
+    res.status(200).json({ message: "partner added successfully" });
+  } catch (err) {
+    error.error(err, next);
+  }
+};
+
+/***************************************************
+ * Remove Interested Partner from Sale at Discount *
+ ***************************************************/
+module.exports.removeInterestedPartnerFromSaleAtDiscount = async (
+  req,
+  res,
+  next
+) => {
+  const saleId = req.params._id,
+    userId = req.body.userId;
+
+  try {
+    // validate user
+    const user = await User.findById(userId);
+    if (!user) {
+      error.errorHandler(res, "not authorized", "user");
+      return;
+    }
+
+    // validate sale
+    const sale = await Sale.findById(saleId, "interestedPartners");
+    if (!sale) {
+      error.errorHandler(res, "sale not found", "user");
+      return;
+    }
+
+    // continue if there are no errors
+
+    // pull user from interested partners array
+    await sale.interestedPartners.pull({ user: user._id });
+
+    // save changes
+    await sale.save();
+
+    res.status(200).json({ message: "partner removed" });
+  } catch (err) {
+    error.error(err, next);
+  }
+};
+
+/**********************************
+ * Change Sale at Discount Status *
+ **********************************/
+module.exports.changeSaleAtDiscountStatus = async (req, res, next) => {
+  const saleId = req.params._id,
+    userId = req.body.userId;
+
+  try {
+    // validate user
+    const user = await User.findById(userId);
+    if (!user) {
+      error.errorHandler(res, "not authorized", "user");
+      return;
+    }
+
+    // validate sale
+    const sale = await Sale.findById(saleId, "status").populate("creator");
+    if (!sale) {
+      error.errorHandler(res, "sale not found", "sale");
+      return;
+    }
+
+    // validate user as sale creator
+    if (sale.creator._id.toString() !== userId.toString()) {
+      error.errorHandler(res, "not authorized", "creator");
+      return;
+    }
+
+    // continue if there are no errors
+
+    // change sale status
+    sale.status = true;
+    await sale.save();
+
+    res.status(200).json({ message: "sale status changed successfully" });
+  } catch (err) {
+    error.errorHandler(err, next);
+  }
+};
+
+/**********************
+ * Get All Businesses *
+ **********************/
+module.exports.getAllBusinesses = async (req, res, next) => {
+  const userId = req.params._id;
+
+  try {
+    // validate user
+    const user = await User.findById(userId);
+    if (!user) {
+      error.errorHandler(res, "not authorized", "user");
+      return;
+    }
+
+    // continue if there are no errors
+
+    // get all demand
+    const demand = await Demand.find()
+      .populate("creator", "firstName lastName profileImage")
+      .populate("product")
+      .populate("interestedPartners");
+
+    // get all joint purchase
+    const jointPurchase = await JointPurchase.find()
+      .populate("creator", "firstName lastName profileImage")
+      .populate("product")
+      .populate("interestedPartners");
+
+    // get all sales on discount
+    const sale = await Sale.find()
+      .populate("creator", "firstName lastName profileImage")
+      .populate("product")
+      .populate("interestedPartners");
+
+    const business = [...demand, ...jointPurchase, ...sale];
+
+    res
+      .status(200)
+      .json({ message: "all businesses fetched successfully", business });
   } catch (err) {
     error.error(err, next);
   }
