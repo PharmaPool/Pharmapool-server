@@ -61,6 +61,10 @@ app.use("/user", userRoutes);
 app.use("/profile", profileRoutes);
 app.use("/business", businessRoutes);
 
+app.get("/", (req, res, next) => {
+  res.send("Hello World");
+});
+
 app.use((req, res, next) => {
   if (req.originalUrl && req.originalUrl.split("/").pop() === "favicon.ico") {
     return res.sendStatus(204);
@@ -80,12 +84,14 @@ app.use((err, req, res, next) => {
 mongoose
   .connect(process.env.MONGO_URL)
   .then((result) => {
-    const server = app.listen(process.env.PORT || 8000, () =>
-      console.log("server started")
-    );
-
-    const io = require("./util/socket").init(server);
-
-    io.on("connection", (socket) => {});
+    console.log("database connected");
   })
   .catch((err) => console.log(err));
+
+const server = app.listen(process.env.PORT || 8000, () =>
+  console.log("server started")
+);
+
+const io = require("./util/socket").init(server);
+
+io.on("connection", (socket) => {});
