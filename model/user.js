@@ -88,6 +88,26 @@ const userSchema = new Schema(
         ref: "Post",
       },
     ],
+    businesses: {
+      demand: [
+        {
+          type: Schema.Types.ObjectId,
+          ref: "Demand",
+        },
+      ],
+      jointPurchase: [
+        {
+          type: Schema.Types.ObjectId,
+          ref: "JointPurchase",
+        },
+      ],
+      saleOnDiscount: [
+        {
+          type: Schema.Types.ObjectId,
+          ref: "SaleAtDiscount",
+        },
+      ],
+    },
     notifications: {
       count: {
         type: Number,
@@ -181,13 +201,9 @@ const userSchema = new Schema(
   }
 );
 
-userSchema
-  .virtual("fullName")
-  .get(() => `${this.firstName} ${this.lastName}`)
-  .set(function (newName) {
-    var nameParts = newName.split(" ");
-    this.firstName = nameParts[0];
-    this.lastName = nameParts[1];
-  });
+const virtualFullName = userSchema.virtual("fullName");
+virtualFullName.get(function () {
+  return `${this.firstName} ${this.lastName}`;
+});
 
 module.exports = mongoose.model("User", userSchema);

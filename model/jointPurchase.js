@@ -6,6 +6,7 @@ const jointPurchaseSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: "User",
   },
+  business: { type: String, default: "joint purchase" },
   content: { type: String },
   interestedPartners: [
     {

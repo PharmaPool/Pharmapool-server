@@ -25,7 +25,8 @@ module.exports.createProductDemand = async (req, res, next) => {
     locationOfPharmacy = req.body.locationOfPharmacy,
     content = req.body.content,
     userId = req.params._id,
-    quantity = req.body.quantity;
+    quantity = req.body.quantity,
+    deadline = req.body.deadline;
 
   try {
     // validate user
@@ -53,9 +54,9 @@ module.exports.createProductDemand = async (req, res, next) => {
       date,
       manufacturer,
       quantity,
-      productImage: { imageUrl, imageId },
       locationOfPharmacy,
     });
+    await product.productImage.push({ imageUrl, imageId });
 
     // save new product
     const newProduct = await product.save();
@@ -65,6 +66,7 @@ module.exports.createProductDemand = async (req, res, next) => {
       creator: userId,
       content,
       product: newProduct._id,
+      deadline,
     });
 
     // save demand
@@ -133,7 +135,27 @@ module.exports.addInterestedPartners = async (req, res, next) => {
     //   save demand to database
     await demand.save();
 
-    io.getIO().emit("demand", { action: "partner added", demand });
+    // get all demand
+    const demands = await Demand.find()
+      .populate("creator", "firstName lastName profileImage")
+      .populate("product")
+      .populate("interestedPartners");
+
+    // get all joint purchase
+    const jointPurchases = await JointPurchase.find()
+      .populate("creator", "firstName lastName profileImage")
+      .populate("product")
+      .populate("interestedPartners");
+
+    // get all sales on discount
+    const sales = await Sale.find()
+      .populate("creator", "firstName lastName profileImage")
+      .populate("product")
+      .populate("interestedPartners");
+
+    const businesses = [...demands, ...jointPurchases, ...sales];
+
+    io.getIO().emit("business", { action: "partner added", businesses });
 
     res.status(200).json({ message: "partner added successfully" });
   } catch (err) {
@@ -347,9 +369,29 @@ module.exports.addJointPurchasePartner = async (req, res, next) => {
     // save changes
     await jointPurchase.save();
 
-    io.getIO().emit("jointPurchase", {
+    // get all demand
+    const demands = await Demand.find()
+      .populate("creator", "firstName lastName profileImage")
+      .populate("product")
+      .populate("interestedPartners");
+
+    // get all joint purchase
+    const jointPurchases = await JointPurchase.find()
+      .populate("creator", "firstName lastName profileImage")
+      .populate("product")
+      .populate("interestedPartners");
+
+    // get all sales on discount
+    const sales = await Sale.find()
+      .populate("creator", "firstName lastName profileImage")
+      .populate("product")
+      .populate("interestedPartners");
+
+    const businesses = [...demands, ...jointPurchases, ...sales];
+
+    io.getIO().emit("business", {
       action: "partner added",
-      jointPurchase,
+      businesses,
     });
 
     res.status(200).json({ message: "partner added successfully" });
@@ -747,12 +789,32 @@ module.exports.addPartnerToSaleAtDiscount = async (req, res, next) => {
     // continue if there are no errors
 
     // add user to interested partners array
-    sale.interestedPartners.push({ user: user._id, quantity });
+    await sale.interestedPartners.push({ user: user._id, quantity });
 
     // save changes
     await sale.save();
 
-    io.getIO().emit("sale", { action: "partner added", sale });
+    // get all demand
+    const demands = await Demand.find()
+      .populate("creator", "firstName lastName profileImage")
+      .populate("product")
+      .populate("interestedPartners");
+
+    // get all joint purchase
+    const jointPurchases = await JointPurchase.find()
+      .populate("creator", "firstName lastName profileImage")
+      .populate("product")
+      .populate("interestedPartners");
+
+    // get all sales on discount
+    const sales = await Sale.find()
+      .populate("creator", "firstName lastName profileImage")
+      .populate("product")
+      .populate("interestedPartners");
+
+    const businesses = [...demands, ...jointPurchases, ...sales];
+
+    io.getIO().emit("business", { action: "partner added", businesses });
 
     res.status(200).json({ message: "partner added successfully" });
   } catch (err) {
@@ -844,16 +906,7 @@ module.exports.changeSaleAtDiscountStatus = async (req, res, next) => {
  * Get All Businesses *
  **********************/
 module.exports.getAllBusinesses = async (req, res, next) => {
-  const userId = req.params._id;
-
   try {
-    // validate user
-    const user = await User.findById(userId);
-    if (!user) {
-      error.errorHandler(res, "not authorized", "user");
-      return;
-    }
-
     // continue if there are no errors
 
     // get all demand

@@ -5,6 +5,7 @@ const upload = multer({ dest: "../uploads" });
 
 const businessController = require("../controller/business");
 
+router.get("/", businessController.getAllBusinesses);
 router.post(
   "/demand/:_id",
   upload.single("file"),
@@ -16,7 +17,7 @@ router.patch("/demand/status/:_id", businessController.changeDemandStatus);
 
 router.post(
   "/jointpurchase/:_id",
-  upload.single("file"),
+  upload.any("file"),
   businessController.createJointPurchase
 );
 router.post(
@@ -38,24 +39,25 @@ router.post(
 
 router.post(
   "/saleondiscount/create/:_id",
+  upload.any("file"),
   businessController.createSaleAtDiscount
 );
 router.post(
-  "/saleondiscount/:_id",
+  "/saleondiscount/user/:_id",
   businessController.addPartnerToSaleAtDiscount
 );
 router.delete(
-  "/saleondiscount/:_id",
+  "/saleondiscount/user/:_id",
   businessController.removeInterestedPartnerFromSaleAtDiscount
 );
 router.patch(
-  "/saleondiscount/:_id",
+  "/saleondiscount/status/:_id",
   businessController.changeSaleAtDiscountStatus
 );
 
 router.post(
   "/pharmacy/:_id",
-  upload.single("file"),
+  upload.any("file"),
   businessController.registerPharmacy
 );
 router.patch(

@@ -6,6 +6,7 @@ const demandSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: "User",
   },
+  business: { type: String, default: "demand" },
   content: {
     type: String,
     required: true,
@@ -17,7 +18,7 @@ const demandSchema = new Schema({
   interestedPartners: [
     {
       user: { type: Schema.Types.ObjectId, ref: "User", required: true },
-      price: { type: Number, required: true },
+      price: { type: String, required: true },
     },
   ],
   status: { type: Boolean, required: true, default: false },

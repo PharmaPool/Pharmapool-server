@@ -22,7 +22,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: "*",
   })
 );
 
@@ -88,10 +88,11 @@ mongoose
   })
   .catch((err) => console.log(err));
 
-const server = app.listen(process.env.PORT || 8000, () =>
-  console.log("server started")
-);
+const port = process.env.PORT || 8000;
+const server = app.listen(port, () => console.log(`server started: ${port}`));
 
 const io = require("./util/socket").init(server);
 
-io.on("connection", (socket) => {});
+io.on("connection", (socket) => {
+  console.log("socket connected")
+});

@@ -577,7 +577,7 @@ module.exports.addFriendToChatroom = async (req, res, next) => {
 
     // Verify current chat to see if current requesting user is allowed to add in new users
     // validAdmin(res, chat, userId);
-    if (chat.admin.toString() !== userId.toString()) {
+    if (chat.admin.toString() !== userId) {
       error.errorHandler(res, "only admin can add new members", "admin");
       return;
     }
@@ -590,9 +590,7 @@ module.exports.addFriendToChatroom = async (req, res, next) => {
     }
 
     // Check if friend isn't already in the chat
-    if (
-      chat.users.find((user) => user.userId.toString() === friendId.toString())
-    ) {
+    if (chat.users.find((user) => user.toString() === friendId.toString())) {
       error.errorHandler(res, "this user is already in the chatroom", "friend");
       return;
     }
@@ -600,7 +598,7 @@ module.exports.addFriendToChatroom = async (req, res, next) => {
     // Continue if there are no errors
 
     // Add friend to chat users array
-    chat.users.push({ userId: friendId });
+    chat.users.push(friendId);
 
     const friend = await getUser(friendId, "messages");
 
@@ -799,9 +797,7 @@ module.exports.messageChatroom = async (req, res, next) => {
     }
 
     // Check if user is valid
-    if (
-      !chat.users.find((user) => user._id.toString() === userId.toString())
-    ) {
+    if (!chat.users.find((user) => user._id.toString() === userId.toString())) {
       error.errorHandler(err, "not authorized", "user");
       return;
     }
@@ -892,7 +888,7 @@ module.exports.createChatroom = async (req, res, next) => {
     const newChatRoom = new ChatRoom({
       title,
       admin: userId,
-      users: [{ userId }],
+      users: [userId],
     });
 
     // save chat room

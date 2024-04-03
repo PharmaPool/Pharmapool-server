@@ -25,9 +25,10 @@ module.exports.getPosts = async (req, res, next) => {
   try {
     let posts;
 
-    posts = await Post.find().sort({ updatedAt: -1 });
-    //   .populate("creator")
-    //   .populate("likes", "firstName lastName fullName profileImage")
+    posts = await Post.find()
+      .sort({ updatedAt: -1 })
+      .populate("creator", "firstName lastName fullName profileImage")
+      .populate("likes", "firstName lastName fullName profileImage");
     //   .populate(populatePost);
     posts.sort((a, b) => b.updatedAt - a.updatedAt);
 
@@ -114,7 +115,7 @@ module.exports.postComment = async (req, res, next) => {
       );
     }
 
-    io.getIO().emit("post", { action: "comment" });
+    io.getIO().emit("post", { action: "comment", updatedPost });
 
     // Send response to client
     res.status(200).json({ message: "comment successfully added" });
@@ -856,7 +857,7 @@ module.exports.updateReply = async (req, res, next) => {
       userId.toString();
     if (!canEdit) {
       error.errorHandler(res, "not authorized", "user");
-      return
+      return;
     }
 
     // continue if there are no errors
@@ -924,8 +925,8 @@ module.exports.clearNotifications = async (req, res, next) => {
     const user = await User.findById(userId, "notifications");
 
     if (!user) {
-      error.errorHandler(res, "user not found", "user")
-      return
+      error.errorHandler(res, "user not found", "user");
+      return;
     }
     // continue if there are no errors
     if (type === "clear") user.notifications.content = [];
@@ -936,7 +937,7 @@ module.exports.clearNotifications = async (req, res, next) => {
     // save update
     await user.save();
 
-    io.getIO().emit("notification")
+    io.getIO().emit("notification");
 
     // send response to client
     res.status(200).json({ message: "notifications cleared" });

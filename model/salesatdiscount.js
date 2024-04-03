@@ -6,6 +6,7 @@ const salesAtDiscountSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: "User",
   },
+  business: { type: String, default:"sale" },
   content: {
     type: String,
     required: true,
@@ -17,7 +18,7 @@ const salesAtDiscountSchema = new Schema({
   interestedPartners: [
     {
       user: { type: Schema.Types.ObjectId, ref: "User", required: true },
-      quantity: { type: Number, required: true },
+      quantity: { type: String, required: true },
     },
   ],
   status: { type: Boolean, required: true, default: false },
