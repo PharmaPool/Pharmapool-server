@@ -1,7 +1,7 @@
 module.exports = {
   error: (err, next) => {
     if (!err.statusCode) err.statusCode = 500;
-    next(err);
+    return next(err);
   },
   errorHandler: (res, message, type = "") => {
     res.send({ error: message, type });

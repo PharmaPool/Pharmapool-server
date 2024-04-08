@@ -1,8 +1,9 @@
+let socketIO;
 module.exports = {
   init: (httpServer) => {
-    io = require("socket.io")(httpServer, {
+    const io = require("socket.io")(httpServer, {
       cors: {
-        origin: "*",
+        origin: "http://localhost:3000",
       },
     });
 
@@ -15,3 +16,51 @@ module.exports = {
     return io;
   },
 };
+
+// let connection;
+// class Socket {
+//   socket;
+//   constructor() {
+//     this.socket = null;
+//   }
+
+//   connect(server) {
+//     const io = require("socket.io")(server, {
+//       cors: {
+//         origin: "http://localhost:3000",
+//       },
+//     });
+//     io.on("connection", (socket) => {
+//       console.log("socket connected");
+//       this.socket = socket;
+//     });
+//   }
+
+//   emit(event, data) {
+//     this.socket.emit(event, data);
+//   }
+
+//   on(event) {
+//     this.socket.on(event, (result) => {
+//       console.log(result);
+//     });
+//   }
+
+//   static init(server) {
+//     if (!connection) {
+//       connection = new Socket();
+//       connection.connect(server);
+//     }
+//   }
+
+//   static getConnection() {
+//     if (connection) {
+//       return connection;
+//     }
+//   }
+// }
+
+// module.exports = {
+//   init: Socket.init,
+//   connect: Socket.getConnection,
+// };

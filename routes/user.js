@@ -34,7 +34,8 @@ router.delete("/chatroom/leave", userController.leaveChatroom);
 router.post("/chatroom/create", userController.createChatroom);
 
 router.get("/messages/:_id", userController.getMessages);
-router.get("/singleChat", userController.getSingleChat)
+router.post("/singlechat/:chatId", userController.getSingleChat)
+router.post("/singlechatroom/:chatId", userController.getSingleChatroom)
 router.post(
   "/chatroom/:_id",
   [body("message", "message can't be empty").not().isEmpty()],

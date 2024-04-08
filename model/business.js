@@ -1,12 +1,12 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
-const salesAtDiscountSchema = new Schema({
+const businessesSchema = new Schema({
   creator: {
     type: Schema.Types.ObjectId,
     ref: "User",
   },
-  business: { type: String, default:"sale" },
+  business: { type: String, required: true },
   content: {
     type: String,
     required: true,
@@ -18,11 +18,11 @@ const salesAtDiscountSchema = new Schema({
   interestedPartners: [
     {
       user: { type: Schema.Types.ObjectId, ref: "User", required: true },
-      quantity: { type: String, required: true },
+      price: { type: String },
     },
   ],
   status: { type: Boolean, required: true, default: false },
   deadline: { type: String, required: true },
 });
 
-module.exports = mongoose.model("SaleOnDiscount", salesAtDiscountSchema);
+module.exports = mongoose.model("Business", businessesSchema);

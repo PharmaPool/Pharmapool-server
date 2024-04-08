@@ -1,21 +1,19 @@
 // models
 const Product = require("../model/product");
 const Pharmacy = require("../model/pharmacy");
-const Demand = require("../model/demand");
-const JointPurchase = require("../model/jointPurchase");
 const User = require("../model/user");
 const ChatRoom = require("../model/chatroom");
-const Sale = require("../model/salesatdiscount");
+const Business = require("../model/business");
 
 // middle wares
 const error = require("../util/error-handling/errorHandler");
 const io = require("../util/socket");
 const { uploadImage, removeImage } = require("../util/images/images");
 
-/*************************
- * Create Product Demand *
- *************************/
-module.exports.createProductDemand = async (req, res, next) => {
+/*******************
+ * Create Business *
+ *******************/
+module.exports.createBusiness = async (req, res, next) => {
   const genericName = req.body.genericName,
     brandName = req.body.brandName,
     strength = req.body.strength,
@@ -26,7 +24,8 @@ module.exports.createProductDemand = async (req, res, next) => {
     content = req.body.content,
     userId = req.params._id,
     quantity = req.body.quantity,
-    deadline = req.body.deadline;
+    deadline = req.body.deadline,
+    businessType = req.body.business;
 
   try {
     // validate user
@@ -39,7 +38,7 @@ module.exports.createProductDemand = async (req, res, next) => {
     // check for image
     let imageUrl, imageId;
     if (req.file) {
-      const uploadedImage = await uploadImage(req.file.path);
+      const uploadedImage = await uploadImage(res, req.file.path);
       imageUrl = uploadedImage.imageUrl;
       imageId = uploadedImage.imageId;
     }
@@ -62,26 +61,29 @@ module.exports.createProductDemand = async (req, res, next) => {
     const newProduct = await product.save();
 
     // add new demand
-    const demand = new Demand({
+    const business = new Business({
       creator: userId,
       content,
       product: newProduct._id,
       deadline,
+      business: businessType,
+      interestedPartners: [{ user: userId }],
     });
 
     // save demand
-    await demand.save();
+    await business.save();
 
     // populate product
-    const demandMade = await Demand.findById(demand._id)
+    const businessMade = await Business.find()
+      .populate("creator", "firstName lastName profileImage")
       .populate("product")
-      .populate("interestedPartners", "firstName lastName profileImage");
+      .populate("interestedPartners");
 
-    io.getIO().emit("demand", { action: "make demand", demandMade });
+    const businesses = [...businessMade].reverse();
 
-    res
-      .status(200)
-      .json({ message: "demand created successfully", demandMade });
+    io.getIO().emit("business", { action: "business made", businesses });
+
+    res.status(200).json({ message: "business created successfully" });
   } catch (err) {
     error.error(err, next);
   }
@@ -91,7 +93,7 @@ module.exports.createProductDemand = async (req, res, next) => {
  * Add Interested Partners *
  ***************************/
 module.exports.addInterestedPartners = async (req, res, next) => {
-  const demandId = req.params._id,
+  const businessId = req.params._id,
     userId = req.body.userId,
     amount = req.body.amount;
 
@@ -103,13 +105,13 @@ module.exports.addInterestedPartners = async (req, res, next) => {
     }
 
     // validate demand
-    const demand = await Demand.findById(demandId, "interestedPartners");
-    if (!demand) {
+    const business = await Business.findById(businessId, "interestedPartners");
+    if (!business) {
       error.errorHandler(res, "demand not found", "demand");
     }
 
     // check if user is already in interestedPartners array
-    const alreadyInterested = demand.interestedPartners.find(
+    const alreadyInterested = business.interestedPartners.find(
       (user) => user.user._id.toString() === userId.toString()
     );
     if (alreadyInterested) {
@@ -130,30 +132,18 @@ module.exports.addInterestedPartners = async (req, res, next) => {
     };
 
     //   add interested partner in interested partners array
-    demand.interestedPartners.push(interestedPartner);
+    business.interestedPartners.push(interestedPartner);
 
     //   save demand to database
-    await demand.save();
+    await business.save();
 
     // get all demand
-    const demands = await Demand.find()
+    const businessMade = await Business.find()
       .populate("creator", "firstName lastName profileImage")
       .populate("product")
       .populate("interestedPartners");
 
-    // get all joint purchase
-    const jointPurchases = await JointPurchase.find()
-      .populate("creator", "firstName lastName profileImage")
-      .populate("product")
-      .populate("interestedPartners");
-
-    // get all sales on discount
-    const sales = await Sale.find()
-      .populate("creator", "firstName lastName profileImage")
-      .populate("product")
-      .populate("interestedPartners");
-
-    const businesses = [...demands, ...jointPurchases, ...sales];
+    const businesses = [...businessMade].reverse();
 
     io.getIO().emit("business", { action: "partner added", businesses });
 
@@ -167,7 +157,7 @@ module.exports.addInterestedPartners = async (req, res, next) => {
  * Remove Interested Partner *
  *****************************/
 module.exports.removeInterestedPartner = async (req, res, next) => {
-  const demandId = req.params._id,
+  const businessId = req.params._id,
     userId = req.body.userId;
 
   try {
@@ -179,14 +169,14 @@ module.exports.removeInterestedPartner = async (req, res, next) => {
     }
 
     // validate demand
-    const demand = await Demand.findById(demandId, "interestedPartners");
-    if (!demand) {
+    const business = await Business.findById(businessId, "interestedPartners");
+    if (!business) {
       error.errorHandler(res, "demand not found", "demand");
       return;
     }
 
     // check if user is in interestedPartners array of demand
-    const interestedPartner = demand.interestedPartners.find(
+    const interestedPartner = business.interestedPartners.find(
       (user) => user.user._id.toString() === userId.toString()
     );
     if (!interestedPartner) {
@@ -197,12 +187,12 @@ module.exports.removeInterestedPartner = async (req, res, next) => {
     // continue if there are no errors
 
     // pull user from interestedPartners array
-    await demand.interestedPartners.pull({ user: userId });
+    await business.interestedPartners.pull({ user: userId });
 
     // save changes
-    await demand.save();
+    await business.save();
 
-    io.getIO().emit("demand", { action: "user removed", demand });
+    io.getIO().emit("business", { action: "user removed", business });
 
     res.status(200).json({ message: "partner removed successfully" });
   } catch (err) {
@@ -211,19 +201,19 @@ module.exports.removeInterestedPartner = async (req, res, next) => {
 };
 
 /************************
- * Change Demand Status *
+ * Change Business Status *
  ************************/
-module.exports.changeDemandStatus = async (req, res, next) => {
-  const demandId = req.params._id,
+module.exports.changeBusinessStatus = async (req, res, next) => {
+  const businessId = req.params._id,
     userId = req.body.userId;
 
   try {
     // validate demand
-    const demand = await Demand.findById(demandId, "status").populate(
+    const business = await Business.findById(businessId, "status").populate(
       "creator",
       "firstName lastName profileImage"
     );
-    if (!demand) {
+    if (!business) {
       error.errorHandler(res, "demand not found", "demand");
       return;
     }
@@ -236,258 +226,17 @@ module.exports.changeDemandStatus = async (req, res, next) => {
     }
 
     // check if user is demand creator
-    if (demand.creator._id.toString() !== userId.toString()) {
+    if (business.creator._id.toString() !== userId.toString()) {
       error.errorHandler(res, "not authorized", "creator");
       return;
     }
 
-    demand.status = true;
+    business.status = true;
 
     //  save changes
-    demand.save();
+    business.save();
 
-    io.getIO().emit("demand", { action: "demand status updated", demand });
-
-    res.status(200).json({ message: "demand status updated successfully" });
-  } catch (err) {
-    error.error(err, next);
-  }
-};
-
-/*************************
- * Create Joint Purchase *
- *************************/
-module.exports.createJointPurchase = async (req, res, next) => {
-  const genericName = req.body.genericName,
-    brandName = req.body.brandName,
-    strength = req.body.strength,
-    expiryDate = req.body.expiryDate,
-    date = Date.now(),
-    manufacturer = req.body.manufacturer,
-    locationOfPharmacy = req.body.locationOfPharmacy,
-    creator = req.params._id,
-    content = req.body.content,
-    deadline = req.body.deadline,
-    quantity = req.body.quantity;
-
-  try {
-    // validate user
-    const user = await User.findById(creator);
-    if (!user) {
-      error.errorHandler(res, "not authorized", "user");
-      return;
-    }
-
-    // check for image
-    let imageUrl, imageId;
-    if (req.file) {
-      const uploadedImage = await uploadImage(req.file.path);
-      imageUrl = uploadedImage.imageUrl;
-      imageId = uploadedImage.imageId;
-    }
-
-    // Add new product
-    const product = new Product({
-      owner: creator,
-      genericName,
-      brandName,
-      strength,
-      expiryDate,
-      date,
-      manufacturer,
-      productImage: { imageUrl, imageId },
-      locationOfPharmacy,
-    });
-
-    // save new product
-    await product.save();
-
-    // add new demand
-    const jointPurchase = new JointPurchase({
-      creator,
-      content,
-      interestedPartners: [creator],
-      product: product._id,
-      deadline,
-    });
-
-    // save demand
-    await jointPurchase.save();
-
-    // populate product
-    const jointPurchaseMade = await JointPurchase.findById(jointPurchase._id)
-      .populate("product")
-      .populate("interestedPartners", "firstName lastName profileImage");
-
-    io.getIO().emit("demand", { action: "make demand", jointPurchaseMade });
-
-    res.status(200).json({ message: "joint purchase created successfully" });
-  } catch (err) {
-    error.error(err, next);
-  }
-};
-
-/********************************************
- * Add Interested Partner to Joint Purchase *
- ********************************************/
-module.exports.addJointPurchasePartner = async (req, res, next) => {
-  const jointPurchaseId = req.params._id,
-    userId = req.body.userId;
-
-  try {
-    // validate user
-    const user = await User.findById(userId);
-    if (!user) {
-      error.errorHandler(res, "not authorized", "user");
-      return;
-    }
-
-    // validate joint purchase
-    const jointPurchase = await JointPurchase.findById(
-      jointPurchaseId,
-      "interestedPartners"
-    );
-    if (!jointPurchase) {
-      error.errorHandler(res, "joint purchase not found", "jointPurchase");
-      return;
-    }
-
-    // check if user is not already a partner
-    const alreadyPartner = jointPurchase.interestedPartners.find(
-      (user) => user._id.toString() === userId.toString()
-    );
-    if (alreadyPartner) {
-      error.errorHandler(res, "user is already a partner", "user");
-      return;
-    }
-
-    // continue if there are no errors
-
-    // push user to interested partners array
-    jointPurchase.interestedPartners.push(userId);
-
-    // save changes
-    await jointPurchase.save();
-
-    // get all demand
-    const demands = await Demand.find()
-      .populate("creator", "firstName lastName profileImage")
-      .populate("product")
-      .populate("interestedPartners");
-
-    // get all joint purchase
-    const jointPurchases = await JointPurchase.find()
-      .populate("creator", "firstName lastName profileImage")
-      .populate("product")
-      .populate("interestedPartners");
-
-    // get all sales on discount
-    const sales = await Sale.find()
-      .populate("creator", "firstName lastName profileImage")
-      .populate("product")
-      .populate("interestedPartners");
-
-    const businesses = [...demands, ...jointPurchases, ...sales];
-
-    io.getIO().emit("business", {
-      action: "partner added",
-      businesses,
-    });
-
-    res.status(200).json({ message: "partner added successfully" });
-  } catch (err) {
-    error.errorHandler(err, next);
-  }
-};
-
-/*************************************************
- * Remove Interested Partner from Joint Purchase *
- *************************************************/
-module.exports.removeJointPurchasePartner = async (req, res, next) => {
-  const jointPurchaseId = req.params._id,
-    userId = req.body.userId;
-
-  try {
-    // validate user
-    const user = await User.findById(userId);
-    if (!user) {
-      error.errorHandler(res, "not authorized", "user");
-      return;
-    }
-
-    // validate joint purchase
-    const jointPurchase = await JointPurchase.findById(
-      jointPurchaseId,
-      "interestedPartners"
-    );
-    if (!jointPurchase) {
-      error.errorHandler(res, "joint purchase not found", "jointPurchase");
-      return;
-    }
-
-    // check if user is a partner
-    const alreadyPartner = jointPurchase.interestedPartners.find(
-      (user) => user._id.toString() === userId.toString()
-    );
-    if (!alreadyPartner) {
-      error.errorHandler(res, "user not a partner", "user");
-      return;
-    }
-
-    // pull user from interested partners array
-    jointPurchase.interestedPartners.pull(userId);
-
-    // save changes
-    await jointPurchase.save();
-
-    io.getIO().emit("jointPurchase", { action: "user removed", jointPurchase });
-
-    res.status(200).json({ message: "user removed successfully" });
-  } catch (err) {
-    error.errorHandler(err, next);
-  }
-};
-
-/********************************
- * Change Joint Purchase Status *
- ********************************/
-module.exports.changeJointPurchaseStatus = async (req, res, next) => {
-  const jointPurchaseId = req.params._id,
-    userId = req.body.userId;
-
-  try {
-    // validate jointPurchase
-    const jointPurchase = await JointPurchase.findById(
-      jointPurchaseId,
-      "status"
-    ).populate("creator", "firstName lastName profileImage");
-    if (!jointPurchase) {
-      error.errorHandler(res, "joint purchase not found", "joint purchase");
-      return;
-    }
-
-    // validate user
-    const user = await User.findById(userId);
-    if (!user) {
-      error.errorHandler(res, "not authorized", "user");
-      return;
-    }
-
-    // check if user is demand creator
-    if (jointPurchase.creator._id.toString() !== userId.toString()) {
-      error.errorHandler(res, "not authorized", "creator");
-      return;
-    }
-
-    jointPurchase.status = true;
-
-    //  save changes
-    jointPurchase.save();
-
-    io.getIO().emit("demand", {
-      action: "demand status updated",
-      jointPurchase,
-    });
+    io.getIO().emit("business", { action: "demand status updated", business });
 
     res.status(200).json({ message: "demand status updated successfully" });
   } catch (err) {
@@ -499,7 +248,7 @@ module.exports.changeJointPurchaseStatus = async (req, res, next) => {
  * Create Joint Purchase Group *
  *******************************/
 module.exports.createJointPurchaseGroup = async (req, res, next) => {
-  const jointPurchaseId = req.params._id,
+  const businessId = req.params._id,
     userId = req.body.userId,
     title = req.body.title;
 
@@ -512,23 +261,23 @@ module.exports.createJointPurchaseGroup = async (req, res, next) => {
     }
 
     // validate joint purchase
-    const jointPurchase = await JointPurchase.findById(
-      jointPurchaseId,
+    const business = await Business.findById(
+      businessId,
       "interestedPartners"
     ).populate("creator");
-    if (!jointPurchase) {
+    if (!business) {
       error.errorHandler(res, "joint purchase not found", "joint purchase");
       return;
     }
 
     // check if current user is the creator of the joint purchase
-    if (jointPurchase.creator._id.toString() !== userId.toString()) {
+    if (business.creator._id.toString() !== userId.toString()) {
       error.errorHandler(res, "not authorized", "creator");
       return;
     }
 
     // create a group with all interested partners
-    const interestedPartners = jointPurchase.interestedPartners;
+    const interestedPartners = business.interestedPartners;
     const existingRoom = await ChatRoom.findOne({ title });
 
     if (existingRoom) {
@@ -696,212 +445,6 @@ module.exports.deletePharmacy = async (req, res, next) => {
   }
 };
 
-/***************************
- * Create Sale at Discount *
- ***************************/
-module.exports.createSaleAtDiscount = async (req, res, next) => {
-  const genericName = req.body.genericName,
-    brandName = req.body.brandName,
-    strength = req.body.strength,
-    expiryDate = req.body.expiryDate,
-    date = Date.now(),
-    manufacturer = req.body.manufacturer,
-    locationOfPharmacy = req.body.locationOfPharmacy,
-    creator = req.params._id,
-    content = req.body.content,
-    deadline = req.body.deadline,
-    quantity = req.body.quantity;
-
-  try {
-    // validate user
-    const user = await User.findById(creator);
-    if (!user) {
-      error.errorHandler(res, "not authorized", "user");
-      return;
-    }
-
-    // continue if there are no errors
-
-    // create product
-    const product = new Product({
-      owner: creator,
-      genericName,
-      brandName,
-      strength,
-      expiryDate,
-      date,
-      manufacturer,
-      locationOfPharmacy,
-      quantity,
-    });
-
-    // save product
-    await product.save();
-
-    // create sale
-    const sale = new Sale({
-      creator,
-      content,
-      product: product._id,
-      deadline,
-    });
-
-    // save sale
-    await sale.save();
-
-    io.getIO().emit("sale at discount", { action: "sale", sale });
-
-    res.status(200).json({ message: "sale at discount created successfully" });
-  } catch (err) {
-    error.error(err, next);
-  }
-};
-
-/***********************************
- * Add Partner to Sale at Discount *
- ***********************************/
-module.exports.addPartnerToSaleAtDiscount = async (req, res, next) => {
-  const saleId = req.params._id,
-    userId = req.body.userId,
-    quantity = req.body.quantity;
-
-  try {
-    // validate user
-    const user = await User.findById(userId);
-    if (!user) {
-      error.errorHandler(res, "not authorized", "user");
-      return;
-    }
-
-    // validate sale
-    const sale = await Sale.findById(saleId, "interestedPartners");
-    if (!sale) {
-      error.errorHandler(res, "sale not found", "sale");
-      return;
-    }
-
-    // validate quantity
-    if (quantity < 0) {
-      error.errorHandler(res, "please provide a valid quantity", "quantity");
-      return;
-    }
-
-    // continue if there are no errors
-
-    // add user to interested partners array
-    await sale.interestedPartners.push({ user: user._id, quantity });
-
-    // save changes
-    await sale.save();
-
-    // get all demand
-    const demands = await Demand.find()
-      .populate("creator", "firstName lastName profileImage")
-      .populate("product")
-      .populate("interestedPartners");
-
-    // get all joint purchase
-    const jointPurchases = await JointPurchase.find()
-      .populate("creator", "firstName lastName profileImage")
-      .populate("product")
-      .populate("interestedPartners");
-
-    // get all sales on discount
-    const sales = await Sale.find()
-      .populate("creator", "firstName lastName profileImage")
-      .populate("product")
-      .populate("interestedPartners");
-
-    const businesses = [...demands, ...jointPurchases, ...sales];
-
-    io.getIO().emit("business", { action: "partner added", businesses });
-
-    res.status(200).json({ message: "partner added successfully" });
-  } catch (err) {
-    error.error(err, next);
-  }
-};
-
-/***************************************************
- * Remove Interested Partner from Sale at Discount *
- ***************************************************/
-module.exports.removeInterestedPartnerFromSaleAtDiscount = async (
-  req,
-  res,
-  next
-) => {
-  const saleId = req.params._id,
-    userId = req.body.userId;
-
-  try {
-    // validate user
-    const user = await User.findById(userId);
-    if (!user) {
-      error.errorHandler(res, "not authorized", "user");
-      return;
-    }
-
-    // validate sale
-    const sale = await Sale.findById(saleId, "interestedPartners");
-    if (!sale) {
-      error.errorHandler(res, "sale not found", "user");
-      return;
-    }
-
-    // continue if there are no errors
-
-    // pull user from interested partners array
-    await sale.interestedPartners.pull({ user: user._id });
-
-    // save changes
-    await sale.save();
-
-    res.status(200).json({ message: "partner removed" });
-  } catch (err) {
-    error.error(err, next);
-  }
-};
-
-/**********************************
- * Change Sale at Discount Status *
- **********************************/
-module.exports.changeSaleAtDiscountStatus = async (req, res, next) => {
-  const saleId = req.params._id,
-    userId = req.body.userId;
-
-  try {
-    // validate user
-    const user = await User.findById(userId);
-    if (!user) {
-      error.errorHandler(res, "not authorized", "user");
-      return;
-    }
-
-    // validate sale
-    const sale = await Sale.findById(saleId, "status").populate("creator");
-    if (!sale) {
-      error.errorHandler(res, "sale not found", "sale");
-      return;
-    }
-
-    // validate user as sale creator
-    if (sale.creator._id.toString() !== userId.toString()) {
-      error.errorHandler(res, "not authorized", "creator");
-      return;
-    }
-
-    // continue if there are no errors
-
-    // change sale status
-    sale.status = true;
-    await sale.save();
-
-    res.status(200).json({ message: "sale status changed successfully" });
-  } catch (err) {
-    error.errorHandler(err, next);
-  }
-};
-
 /**********************
  * Get All Businesses *
  **********************/
@@ -910,29 +453,37 @@ module.exports.getAllBusinesses = async (req, res, next) => {
     // continue if there are no errors
 
     // get all demand
-    const demand = await Demand.find()
+    const business = await Business.find()
       .populate("creator", "firstName lastName profileImage")
       .populate("product")
       .populate("interestedPartners");
 
-    // get all joint purchase
-    const jointPurchase = await JointPurchase.find()
-      .populate("creator", "firstName lastName profileImage")
-      .populate("product")
-      .populate("interestedPartners");
-
-    // get all sales on discount
-    const sale = await Sale.find()
-      .populate("creator", "firstName lastName profileImage")
-      .populate("product")
-      .populate("interestedPartners");
-
-    const business = [...demand, ...jointPurchase, ...sale];
+    const businesses = [...business].reverse();
 
     res
       .status(200)
-      .json({ message: "all businesses fetched successfully", business });
+      .json({ message: "all businesses fetched successfully", businesses });
   } catch (err) {
     error.error(err, next);
   }
 };
+
+/***********************
+ * Get Single Business *
+ ***********************/
+module.exports.getSingleBusiness = async (req, res, next) => {
+  const businessId = req.params._id
+
+  try {
+    // get and validate business
+    const business = await Business.findById(businessId).populate("creator", "firstName lastName fullName profileImage").populate("interestedPartners.user", "firstName lastName fullName profileImage").populate("product")
+    if (!business) {
+      error.errorHandler(res, "business not found", "business")
+      return
+    }
+
+    res.status(200).json({message: "business fetched successfully", business})
+  } catch (err) {
+    error.error(err, next)
+  }
+}

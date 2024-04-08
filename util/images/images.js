@@ -9,14 +9,14 @@ cloudinary.config({
 });
 
 module.exports = {
-  uploadImage: async (image) => {
+  uploadImage: async (res, image) => {
     const public_id = generateId();
     let imageUrl, imageId;
     await cloudinary.uploader.upload(
       image,
       { public_id: `${public_id}` },
       (err, result) => {
-        if (err) error.errorHandler(res, "Image not uploaded", "image");
+        if (err) error.errorHandler(res, "image not uploaded", "image")
 
         imageUrl = result.url;
         imageId = result.public_id;

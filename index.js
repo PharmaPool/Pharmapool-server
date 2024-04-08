@@ -91,8 +91,8 @@ mongoose
 const port = process.env.PORT || 8000;
 const server = app.listen(port, () => console.log(`server started: ${port}`));
 
-const io = require("./util/socket").init(server);
-
+io = require("./util/socket").init(server);
 io.on("connection", (socket) => {
-  console.log("socket connected")
+  console.log("socket connected");
+  require("./controller/socket")(socket);
 });

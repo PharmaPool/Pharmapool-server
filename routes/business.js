@@ -6,63 +6,24 @@ const upload = multer({ dest: "../uploads" });
 const businessController = require("../controller/business");
 
 router.get("/", businessController.getAllBusinesses);
+router.get("/:_id", businessController.getSingleBusiness)
 router.post(
-  "/demand/:_id",
+  "/:_id",
   upload.single("file"),
-  businessController.createProductDemand
+  businessController.createBusiness
 );
-router.post("/demand/user/:_id", businessController.addInterestedPartners);
-router.delete("/demand/user/:_id", businessController.removeInterestedPartner);
-router.patch("/demand/status/:_id", businessController.changeDemandStatus);
-
-router.post(
-  "/jointpurchase/:_id",
-  upload.any("file"),
-  businessController.createJointPurchase
-);
-router.post(
-  "/jointpurchase/user/:_id",
-  businessController.addJointPurchasePartner
-);
-router.delete(
-  "/jointpurchase/user/:_id",
-  businessController.removeJointPurchasePartner
-);
-router.patch(
-  "/jointpurchase/status/:_id",
-  businessController.changeJointPurchaseStatus
-);
-router.post(
-  "/jointPurchase/group/:_id",
-  businessController.createJointPurchaseGroup
-);
-
-router.post(
-  "/saleondiscount/create/:_id",
-  upload.any("file"),
-  businessController.createSaleAtDiscount
-);
-router.post(
-  "/saleondiscount/user/:_id",
-  businessController.addPartnerToSaleAtDiscount
-);
-router.delete(
-  "/saleondiscount/user/:_id",
-  businessController.removeInterestedPartnerFromSaleAtDiscount
-);
-router.patch(
-  "/saleondiscount/status/:_id",
-  businessController.changeSaleAtDiscountStatus
-);
+router.post("/user/:_id", businessController.addInterestedPartners);
+router.delete("/user/:_id", businessController.removeInterestedPartner);
+router.patch("/status/:_id", businessController.changeBusinessStatus);
 
 router.post(
   "/pharmacy/:_id",
-  upload.any("file"),
+  upload.single("file"),
   businessController.registerPharmacy
 );
 router.patch(
   "/pharmacy/:_id",
-  upload.array("file"),
+  upload.single("file"),
   businessController.addPharmacyImages
 );
 router.delete("/pharmacy/:_id", businessController.deletePharmacy);

@@ -500,9 +500,9 @@ module.exports.sendMessage = async (req, res, next) => {
     const friend = await getUser(friendId);
 
     // Check input validation
-    const validatorErrors = validationResult(req);
+    // const validatorErrors = validationResult(req);
 
-    error.validationError(validatorErrors);
+    // error.validationError(validatorErrors);
 
     // Continue if there are no errors
 
@@ -530,6 +530,12 @@ module.exports.sendMessage = async (req, res, next) => {
 
       // Save changes
       await existingChat.save();
+
+      const chatMade = await Chat.findById(existingChat._id)
+        .populate("users", "firstName lastName fullName profileImage")
+        .populate("messages.user", "firstName lastName fullName profileImage");
+
+      io.getIO().emit("chat", { action: "message sent", chatMade });
     } else {
       // Create new chat with friend
 
@@ -549,6 +555,12 @@ module.exports.sendMessage = async (req, res, next) => {
       await chat.save();
       await user.save();
       await friend.save();
+
+      const chatMade = await Chat.findById(chat._id)
+        .populate("users", "firstName lastName fullName profileImage")
+        .populate("messages.user", "firstName lastName fullName profileImage");
+
+      io.getIO().emit("chat", { action: "message sent", chatMade });
     }
 
     // Send response to client
@@ -756,11 +768,15 @@ module.exports.getMessages = async (req, res, next) => {
         path: "messages.chatroomcontent",
         populate: [
           {
-            path: "users.userId",
+            path: "users",
             select: "firstName lastName fullName profileImage",
           },
           {
             path: "messages",
+          },
+          {
+            path: "messages.user",
+            select: "firstName lastName fullName profileImage",
           },
         ],
       });
@@ -790,7 +806,9 @@ module.exports.messageChatroom = async (req, res, next) => {
 
   try {
     // Get and validate chat
-    const chat = await ChatRoom.findById(chatId);
+    const chat = await ChatRoom.findById(chatId)
+      .populate("users", "firstName lastName fullName profileImage")
+      .populate("messages.user", "firstName lastName fullName profileImage");
     if (!chat) {
       error.errorHandler(err, "chatroom not found", "chat");
       return;
@@ -822,7 +840,7 @@ module.exports.messageChatroom = async (req, res, next) => {
     forEach(chatUsers, async (item) => {
       const user = await User.findById(item._id);
 
-      if (user._id.toString() && item.userId.toString() !== userId.toString()) {
+      if (user._id.toString() && item.userId !== userId.toString()) {
         // Send message notification to each valid user
 
         //  Check if user doesn't already have current chatId in their messages content array
@@ -854,8 +872,14 @@ module.exports.messageChatroom = async (req, res, next) => {
     // Save chat updates
     await chat.save();
 
+    const chatMade = await ChatRoom.findById(chat._id)
+      .populate("users", "firstName lastName fullName profileImage")
+      .populate("messages.user", "firstName lastName fullName profileImage");
+
+    io.getIO().emit("chatroom", { action: "message sent", chatMade });
+
     // Send response to client
-    res.status(200).json({ message: "message sent" });
+    res.status(200).json({ message: "message sent", chatMade });
   } catch (err) {
     error.error(err, next);
   }
@@ -1083,6 +1107,36 @@ module.exports.getSingleChat = async (req, res, next) => {
     // Check if current userId is included in users array of chat
     const isIncluded = chat.users.filter(
       (user) => user.userId._id.toString() === userId.toString()
+    );
+
+    if (isIncluded.length === 0)
+      error.errorHandler(res, "not authorized", "user");
+
+    // Continue if there are no errors
+    res.status(200).json({ message: "chat fetched successfully", chat });
+  } catch (err) {
+    error.error(err, next);
+  }
+};
+
+/***********************
+ * Get Single Chatroom *
+ ***********************/
+module.exports.getSingleChatroom = async (req, res, next) => {
+  const chatId = req.params.chatId,
+    userId = req.body.userId;
+
+  try {
+    const chat = await ChatRoom.findById(chatId)
+      .populate("users", "firstName lastName fullName profileImage")
+      .populate("messages.user", "firstName lastName fullName profileImage");
+
+    // Check if chat exists
+    if (!chat) error.errorHandler(res, "no chat found", "chat");
+
+    // Check if current userId is included in users array of chat
+    const isIncluded = chat.users.filter(
+      (user) => user._id.toString() === userId.toString()
     );
 
     if (isIncluded.length === 0)
