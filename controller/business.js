@@ -472,18 +472,26 @@ module.exports.getAllBusinesses = async (req, res, next) => {
  * Get Single Business *
  ***********************/
 module.exports.getSingleBusiness = async (req, res, next) => {
-  const businessId = req.params._id
+  const businessId = req.params._id;
 
   try {
     // get and validate business
-    const business = await Business.findById(businessId).populate("creator", "firstName lastName fullName profileImage").populate("interestedPartners.user", "firstName lastName fullName profileImage").populate("product")
+    const business = await Business.findById(businessId)
+      .populate("creator", "firstName lastName fullName profileImage")
+      .populate(
+        "interestedPartners.user",
+        "firstName lastName fullName profileImage"
+      )
+      .populate("product");
     if (!business) {
-      error.errorHandler(res, "business not found", "business")
-      return
+      error.errorHandler(res, "business not found", "business");
+      return;
     }
 
-    res.status(200).json({message: "business fetched successfully", business})
+    res
+      .status(200)
+      .json({ message: "business fetched successfully", business });
   } catch (err) {
-    error.error(err, next)
+    error.error(err, next);
   }
-}
+};

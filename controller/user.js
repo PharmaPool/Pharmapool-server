@@ -778,6 +778,10 @@ module.exports.getMessages = async (req, res, next) => {
             path: "messages.user",
             select: "firstName lastName fullName profileImage",
           },
+          {
+            path: "admin",
+            select: "firstName lastName fullName profileImage",
+          },
         ],
       });
 
