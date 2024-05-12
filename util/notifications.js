@@ -150,16 +150,22 @@ module.exports = {
       case "post":
         notifyUser = await User.findById(
           post.creator.toString(),
-          "notification"
+          "notifications"
         );
         break;
 
       case "comment":
+        notifyUser = await User.findById(
+          post.creator.toString(),
+          "notifications"
+        );
+        break;
       case "reply":
         notifyUser = await User.findById(
           post.user._id.toString(),
           "notifications"
         );
+        break;
 
       default:
         return;
@@ -197,11 +203,12 @@ module.exports = {
     }
 
     // Check if notifyUser doesn't already have a notification associated with the post
+
     const hasNotification = notifyUser.notifications.content.filter((item) => {
       if (item.payload.originalId) {
         if (
           item.payload.originalId.toString() === postId.toString() &&
-          item.payload.alertType === "like"
+          item.payload.alertType === "comment"
         ) {
           return item;
         }
@@ -229,7 +236,7 @@ module.exports = {
         if (item.payload.originalId) {
           if (
             item.payload.originalId.toString() === postId.toString() &&
-            item.payload.alertType === "like"
+            item.payload.alertType === "comment"
           ) {
             return item;
           }

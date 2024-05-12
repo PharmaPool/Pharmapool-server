@@ -137,6 +137,14 @@ module.exports.addInterestedPartners = async (req, res, next) => {
     //   save demand to database
     await business.save();
 
+    const biz = await Business.findById(business._id)
+      .populate("creator", "firstName lastName fullName profileImage")
+      .populate(
+        "interestedPartners.user",
+        "firstName lastName fullName profileImage"
+      )
+      .populate("product");
+
     // get all demand
     const businessMade = await Business.find()
       .populate("creator", "firstName lastName profileImage")
@@ -146,6 +154,7 @@ module.exports.addInterestedPartners = async (req, res, next) => {
     const businesses = [...businessMade].reverse();
 
     io.getIO().emit("business", { action: "partner added", businesses });
+    io.getIO().emit("biz", { action: "partner added", biz });
 
     res.status(200).json({ message: "partner added successfully" });
   } catch (err) {
@@ -263,7 +272,7 @@ module.exports.createJointPurchaseGroup = async (req, res, next) => {
     // validate joint purchase
     const business = await Business.findById(
       businessId,
-      "interestedPartners"
+      "interestedPartners.user"
     ).populate("creator");
     if (!business) {
       error.errorHandler(res, "joint purchase not found", "joint purchase");
@@ -277,9 +286,12 @@ module.exports.createJointPurchaseGroup = async (req, res, next) => {
     }
 
     // create a group with all interested partners
-    const interestedPartners = business.interestedPartners;
-    const existingRoom = await ChatRoom.findOne({ title });
+    const interestedPartners = [];
+    await business.interestedPartners.map((partner) =>
+      interestedPartners.push(partner.user)
+    );
 
+    const existingRoom = await ChatRoom.findOne({ title });
     if (existingRoom) {
       error.errorHandler(res, "chat room exist already", "chatroom");
       return;
@@ -305,9 +317,10 @@ module.exports.createJointPurchaseGroup = async (req, res, next) => {
       await user.save();
     });
 
-    res
-      .status(200)
-      .json({ message: "joint purchase group created successfully" });
+    res.status(200).json({
+      message: "joint purchase group created successfully",
+      newChatRoom,
+    });
   } catch (err) {
     error.error(err, next);
   }
@@ -488,9 +501,11 @@ module.exports.getSingleBusiness = async (req, res, next) => {
       return;
     }
 
-    res
-      .status(200)
-      .json({ message: "business fetched successfully", business });
+    res.status(200).json({
+      message: "business fetched successfully",
+      business,
+      type: "business",
+    });
   } catch (err) {
     error.error(err, next);
   }

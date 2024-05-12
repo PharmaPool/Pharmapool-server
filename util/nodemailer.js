@@ -2,18 +2,23 @@ const nodemailer = require("nodemailer");
 
 const mailer = async (email, subject, message, username, link, btnText) => {
   const transporter = await nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    secure: false,
-    port: 587,
-    auth: {
-      user: "wilsonzim566@gmail.com",
-      pass: "*zIm-1@#",
+    host: "smtpout.secureserver.net",
+    secure: true,
+    secureConnection: false, // TLS requires secureConnection to be false
+    tls: {
+      ciphers: "SSLv3",
     },
-    from: "wilsonzim566@gmail.com",
+    requireTLS: true,
+    port: 465,
+    debug: true,
+    auth: {
+      user: process.env.EMAIL,
+      pass: process.env.PASS,
+    },
   });
 
   const mailOptions = {
-    from: "<wilsonzim566@gmail.com>",
+    from: "<info@pharmapoolng.com>",
     to: email,
     subject: subject,
     html: `<h1>Dear ${username}</h1>

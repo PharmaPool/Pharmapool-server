@@ -92,7 +92,6 @@ module.exports.postComment = async (req, res, next) => {
     
     // Push comment unto comments array
     post.comments.push(comment);
-    console.log("working");
 
     // Save comment to post
     await post.save();

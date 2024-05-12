@@ -15,7 +15,6 @@ router.post(
       .not()
       .isEmpty(),
     body("phoneNumber", "number should not be empty").not().isEmpty(),
-    body("gender", "select a gender").not().isEmpty(),
   ],
   authController.userSignup
 );

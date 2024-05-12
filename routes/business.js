@@ -6,7 +6,7 @@ const upload = multer({ dest: "../uploads" });
 const businessController = require("../controller/business");
 
 router.get("/", businessController.getAllBusinesses);
-router.get("/:_id", businessController.getSingleBusiness)
+router.get ("/:_id", businessController.getSingleBusiness)
 router.post(
   "/:_id",
   upload.single("file"),
@@ -15,6 +15,7 @@ router.post(
 router.post("/user/:_id", businessController.addInterestedPartners);
 router.delete("/user/:_id", businessController.removeInterestedPartner);
 router.patch("/status/:_id", businessController.changeBusinessStatus);
+router.post("/group/:_id", businessController.createJointPurchaseGroup)
 
 router.post(
   "/pharmacy/:_id",

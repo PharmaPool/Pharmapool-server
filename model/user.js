@@ -28,7 +28,7 @@ const userSchema = new Schema(
         type: String,
         // required: true,
         default:
-          "https://res.cloudinary.com/dex0mkckw/image/upload/v1704787280/m2wguhgput2td9gypin8.png",
+          "https://res.cloudinary.com/dex0mkckw/image/upload/v1713474101/profleimage_gh2h39.png",
       },
       imageId: {
         type: String,
@@ -73,6 +73,9 @@ const userSchema = new Schema(
         type: String,
         required: true,
       },
+      registrationNumber: {
+        type: String,
+      },
     },
     friends: [
       {
@@ -88,26 +91,6 @@ const userSchema = new Schema(
         ref: "Post",
       },
     ],
-    businesses: {
-      demand: [
-        {
-          type: Schema.Types.ObjectId,
-          ref: "Demand",
-        },
-      ],
-      jointPurchase: [
-        {
-          type: Schema.Types.ObjectId,
-          ref: "JointPurchase",
-        },
-      ],
-      saleOnDiscount: [
-        {
-          type: Schema.Types.ObjectId,
-          ref: "SaleAtDiscount",
-        },
-      ],
-    },
     notifications: {
       count: {
         type: Number,

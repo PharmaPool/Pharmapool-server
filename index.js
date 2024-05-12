@@ -5,6 +5,7 @@ const bodyParser = require("body-parser");
 const compression = require("compression");
 const isAuth = require("./util/is-auth/isAuth");
 const cors = require("cors");
+const path = require("path")
 
 // Set up dotenv
 dotenv.config();
@@ -55,14 +56,14 @@ app.use((req, res, next) => {
 // app.use(isAuth);
 
 // Endpoints
-app.use("/auth", authRoutes);
-app.use("/feed", feedRoutes);
-app.use("/user", userRoutes);
-app.use("/profile", profileRoutes);
-app.use("/business", businessRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/feed", feedRoutes);
+app.use("/api/user", userRoutes);
+app.use("/api/profile", profileRoutes);
+app.use("/api/business", businessRoutes);
 
 app.get("/", (req, res, next) => {
-  res.send("Hello World");
+  res.send("hello world")
 });
 
 app.use((req, res, next) => {

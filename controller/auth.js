@@ -24,12 +24,13 @@ module.exports.userSignup = async (req, res, next) => {
     phoneNumber = req.body.phoneNumber,
     gender = req.body.gender,
     state = req.body.state,
-    address = req.body.address;
+    address = req.body.address,
+    registrationNumber = req.body.registrationNumber;
 
   try {
     // Check for validation errors
-    const validatorErrors = validationResult(req);
-    error.validationError(validatorErrors, res);
+    // const validatorErrors = validationResult(req);
+    // error.validationError(validatorErrors, res);
 
     // Check if a email already exist
     const emailExist = await userExists("email", email);
@@ -43,7 +44,7 @@ module.exports.userSignup = async (req, res, next) => {
       const user = new User({
         firstName,
         lastName,
-        details: { email, phoneNumber, gender, state, address },
+        details: { email, phoneNumber, gender, state, address, registrationNumber },
         password: hashedPassword,
       });
 
@@ -78,8 +79,8 @@ module.exports.userLogin = async (req, res, next) => {
 
   try {
     // Check for validation errors
-    const validatorErrors = validationResult(req);
-    error.validationError(validatorErrors);
+    // const validatorErrors = validationResult(req);
+    // error.validationError(validatorErrors);
 
     // Check if user exists
     const user = await userExists("email", email);

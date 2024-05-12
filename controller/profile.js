@@ -90,7 +90,6 @@ module.exports.updateUserFullname = async (req, res, next) => {
 module.exports.updateProfileDetails = async (req, res, next) => {
   const userId = req.params.userId,
     email = req.body.email,
-    about = req.body.about,
     state = req.body.state,
     address = req.body.address,
     phoneNumber = req.body.phoneNumber;
@@ -102,7 +101,6 @@ module.exports.updateProfileDetails = async (req, res, next) => {
     if (!user) error.errorHandler(res, "user not found", "user");
 
     user.details.email = email;
-    user.details.about = about;
     user.details.state = state;
     user.details.address = address;
     user.details.phoneNumber = phoneNumber;
@@ -125,7 +123,7 @@ module.exports.changeImage = async (req, res, next) => {
     type = req.body.type;
 
   try {
-    const uploadedImage = await uploadImage(req.file.path);
+    const uploadedImage = await uploadImage(res, req.file.path);
 
     // Get current user
     const user = await User.findById(userId);
