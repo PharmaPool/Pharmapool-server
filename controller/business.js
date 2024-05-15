@@ -4,6 +4,7 @@ const Pharmacy = require("../model/pharmacy");
 const User = require("../model/user");
 const ChatRoom = require("../model/chatroom");
 const Business = require("../model/business");
+const Inventory = require("../model/inventory");
 
 // middle wares
 const error = require("../util/error-handling/errorHandler");
@@ -346,7 +347,7 @@ module.exports.registerPharmacy = async (req, res, next) => {
 
     let imageUrl, imageId;
     if (req.file) {
-      const uploadedImage = await uploadImage(req.file.path);
+      const uploadedImage = await uploadImage(res, req.file.path);
       imageUrl = uploadedImage.imageUrl;
       imageId = uploadedImage.imageId;
     }
@@ -374,13 +375,29 @@ module.exports.registerPharmacy = async (req, res, next) => {
   }
 };
 
-/*************************
- * Add Pharmacy Pictures *
- *************************/
-module.exports.addPharmacyImages = async (req, res, next) => {
-  const pharmacyId = req.params._id,
-    userId = req.body.userId,
-    images = req.files;
+/***********************
+ * Get Single Pharmacy *
+ ***********************/
+module.exports.getPharmacy = async (req, res, next) => {
+  const pharmacyId = req.params.id;
+
+  try {
+    const pharmacy = await Pharmacy.findById(pharmacyId).populate("inventory");
+    if (!pharmacy) {
+      error.errorHandler(res, "pharmacy not found", "pharmacy");
+    }
+
+    res.status(200).json({ success: true, pharmacy });
+  } catch (err) {
+    error.error(err, next);
+  }
+};
+
+/***************************
+ * Get All User Pharmacies *
+ ***************************/
+module.exports.getAllUserPharmacies = async (req, res, next) => {
+  const userId = req.params._id;
 
   try {
     // validate user
@@ -390,30 +407,54 @@ module.exports.addPharmacyImages = async (req, res, next) => {
       return;
     }
 
-    // validate pharmacy
-    const pharmacy = await Pharmacy.findById(pharmacyId, "images");
-    if (!pharmacy) {
-      error.errorHandler(res, "pharmacy not found", "pharmacy");
-      return;
-    }
+    const pharmacy = await Pharmacy.find({ owner: userId });
 
-    // uploaded image
-    if (images) {
-      images.map(async (image) => {
-        const uploadedImage = await uploadImage(image.path);
-        await pharmacy.images.push({
-          imageUrl: uploadedImage.imageUrl,
-          imageId: uploadedImage.imageId,
-        });
-        await pharmacy.save();
-      });
-    }
-
-    res.status(200).json({ message: "image uploaded successfully" });
+    res.status(200).json({ success: true, pharmacy });
   } catch (err) {
     error.error(err, next);
   }
 };
+
+/*************************
+ * Add Pharmacy Pictures *
+ *************************/
+// module.exports.addPharmacyImages = async (req, res, next) => {
+//   const pharmacyId = req.params._id,
+//     userId = req.body.userId,
+//     images = req.files;
+
+//   try {
+//     // validate user
+//     const user = await User.findById(userId);
+//     if (!user) {
+//       error.errorHandler(res, "not authorized", "user");
+//       return;
+//     }
+
+//     // validate pharmacy
+//     const pharmacy = await Pharmacy.findById(pharmacyId, "images");
+//     if (!pharmacy) {
+//       error.errorHandler(res, "pharmacy not found", "pharmacy");
+//       return;
+//     }
+
+//     // uploaded image
+//     if (images) {
+//       images.map(async (image) => {
+//         const uploadedImage = await uploadImage(image.path);
+//         pharmacy.logo = {
+//           imageUrl: uploadedImage.imageUrl,
+//           imageId: uploadedImage.imageId,
+//         };
+//         await pharmacy.save();
+//       });
+//     }
+
+//     res.status(200).json({ message: "image uploaded successfully" });
+//   } catch (err) {
+//     error.error(err, next);
+//   }
+// };
 
 /*******************
  * Delete Pharmacy *
@@ -453,6 +494,158 @@ module.exports.deletePharmacy = async (req, res, next) => {
     await user.save();
 
     res.status(200).json({ message: "pharmacy deleted successfully" });
+  } catch (err) {
+    error.error(err, next);
+  }
+};
+
+/********************************
+ * Add New Product to Inventory *
+ ********************************/
+module.exports.addNewProduct = async (req, res, next) => {
+  const brand = req.body.brand,
+    strength = req.body.strength,
+    manufacturer = req.body.manufacturer,
+    expiryDate = req.body.expiryDate,
+    dateIn = req.body.dateIn,
+    quantity = req.body.quantity,
+    product = req.body.product,
+    pharmacyId = req.params.pharmacyId;
+
+  try {
+    const inventory = new Inventory({
+      product,
+      inventory: {
+        brand,
+        strength,
+        manufacturer,
+        dateIn,
+        expiryDate,
+        quantity,
+      },
+      owner: pharmacyId,
+    });
+    inventory.total += quantity;
+
+    await inventory.save();
+
+    const pharmacy = await Pharmacy.findById(pharmacyId).populate("inventory");
+    pharmacy.inventory.push(inventory._id);
+    const updatedPharmacy = await pharmacy.save();
+
+    io.getIO().emit("product", {
+      action: "product added to inventory",
+      updatedPharmacy,
+    });
+
+    res.status(200).json({ success: true, updatedPharmacy });
+  } catch (err) {
+    error.error(err, next);
+  }
+};
+
+/********************************
+ * Get Single Product Inventory *
+ ********************************/
+module.exports.getSingleProductInventory = async (req, res, next) => {
+  const inventoryId = req.params.id;
+
+  try {
+    // validate inventory
+    const inventory = await Inventory.findById(inventoryId);
+    if (!inventory) {
+      error.errorHandler(res, "inventory not found", "inventory");
+      return;
+    }
+
+    // continue if no errors
+    res.status(200).json({ success: true, inventory });
+  } catch (err) {
+    error.error(err, next);
+  }
+};
+
+/********************************
+ * Add More Stock for a Product *
+ ********************************/
+module.exports.addMoreStock = async (req, res, next) => {
+  const inventoryId = req.params.inventoryId,
+    brand = req.body.brand,
+    strength = req.body.strength,
+    manufacturer = req.body.manufacturer,
+    expiryDate = req.body.expiryDate,
+    dateIn = req.body.dateIn,
+    quantity = req.body.quantity;
+
+  try {
+    // validate product
+    const inventory = await Inventory.findById(inventoryId);
+    if (!inventory) {
+      error.errorHandler(res, "inventory not found", "inventory");
+      return;
+    }
+
+    // continue if no errors
+    await inventory.inventory.push({
+      brand,
+      strength,
+      manufacturer,
+      dateIn,
+      expiryDate,
+      quantity,
+    });
+
+    inventory.total += quantity;
+
+    const addedInventory = await inventory.save();
+
+    io.getIO().emit("inventory", {
+      action: "stock added successfully",
+      addedInventory,
+    });
+
+    res.status(200).json({ success: true, addedInventory });
+  } catch (err) {
+    error.error(err, next);
+  }
+};
+
+/*******************************
+ * Remove Stock from a Product *
+ *******************************/
+module.exports.removeStock = async (req, res, next) => {
+  const inventoryId = req.params.inventoryId,
+    inventId = req.body.inventId,
+    quantity = req.body.quantity;
+
+  try {
+    // validate product
+    const inventory = await Inventory.findById(inventoryId);
+    if (!inventory) {
+      error.errorHandler(res, "inventory not found", "inventory");
+      return;
+    }
+
+    // continue if no errors
+    const invent = await inventory.inventory.find(
+      (invent) => invent._id.toString() === inventId.toString()
+    );
+
+    if (invent.quantity < quantity) {
+      error.errorHandler(res, "quantity to large for category", "inventory");
+      return;
+    }
+    invent.quantity -= quantity;
+    inventory.total -= quantity;
+
+    const addedInventory = await inventory.save();
+
+    io.getIO().emit("inventory", {
+      action: "stock added successfully",
+      addedInventory,
+    });
+
+    res.status(200).json({ success: true, addedInventory });
   } catch (err) {
     error.error(err, next);
   }
