@@ -10,7 +10,6 @@ cloudinary.config({
 
 module.exports = {
   uploadImage: async (res, image) => {
-    console.log("working")
     const public_id = generateId();
     let imageUrl, imageId;
     await cloudinary.uploader.upload(

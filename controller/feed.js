@@ -50,7 +50,7 @@ module.exports.postComment = async (req, res, next) => {
   try {
     const post = await getPost(postId);
     const user = await User.findById(userId);
-    
+
     // Check for user
     if (!user) {
       error.errorHandler(res, "user not found", "user");
@@ -60,19 +60,19 @@ module.exports.postComment = async (req, res, next) => {
       error.errorHandler(res, "post not found", "post");
       return;
     }
-    
+
     // Check both content and image
     if (!content && !image) {
       error.errorHandler(res, "comment cannot be empty", "comment");
       return;
     }
-    
+
     let imageUrl, imageId, comment;
     if (image) {
       let uploadedImage = await uploadImage(req.file.path);
       imageUrl = uploadedImage.imageUrl;
       imageId = uploadedImage.imageId;
-      
+
       // Create a comment object with postImage
       comment = {
         content,
@@ -89,7 +89,7 @@ module.exports.postComment = async (req, res, next) => {
         user: userId,
       };
     }
-    
+
     // Push comment unto comments array
     post.comments.push(comment);
 
@@ -141,7 +141,6 @@ module.exports.deleteComment = async (req, res, next) => {
 
     // Check comment index
     const commentIndex = await getCommentIndex(post, commentId);
-    console.log(existingComment.user._id.toString(), userId);
 
     // Check if current userId matches with comment user._id
     if (existingComment.user.toString() !== userId.toString()) {
@@ -885,7 +884,10 @@ module.exports.getNotifications = async (req, res, next) => {
   try {
     const user = await User.findById(userId, "notifications");
 
-    if (!user) error.errorHandler(res, "user not found", "user");
+    if (!user) {
+      error.errorHandler(res, "user not found", "user");
+      return;
+    }
 
     // continue if there are no errors
 

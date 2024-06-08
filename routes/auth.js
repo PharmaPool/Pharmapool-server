@@ -18,6 +18,7 @@ router.post(
   ],
   authController.userSignup
 );
+router.get("/verify/:email", authController.verifyAccount);
 router.post(
   "/signin",
   [
@@ -31,7 +32,6 @@ router.post(
 );
 router.post(
   "/password-reset",
-  [body("email", "Please input a valid email").isEmail().not().isEmpty()],
   authController.passwordReset
 );
 router.get("/password-reset/:email", authController.getPasswordToken);

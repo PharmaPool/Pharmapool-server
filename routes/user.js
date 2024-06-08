@@ -22,6 +22,7 @@ router.post("/cancel-friend", userController.cancelFriendRequest);
 router.delete("/remove-friend", userController.removeFriend);
 
 // Message Routes
+router.post("/chat", userController.startChat)
 router.post(
   "/message",
   [body("message", "Message cant be empty").not().isEmpty()],

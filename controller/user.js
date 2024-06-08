@@ -484,6 +484,51 @@ module.exports.removeFriend = async (req, res, next) => {
   }
 };
 
+/**************
+ * Start Chat *
+ **************/
+module.exports.startChat = async (req, res, next) => {
+  const friendId = req.body.friendId,
+    userId = req.body.userId;
+
+  try {
+    const user = await User.findById(userId);
+    const friend = await User.findById(friendId);
+    // Check if you already have a chat going on with just the user
+    const existingChat = await Chat.findOne({
+      $and: [
+        { users: { $elemMatch: { userId: friendId } } },
+        { users: { $elemMatch: { userId: userId } } },
+      ],
+    });
+
+    if (existingChat) {
+      res
+        .status(203)
+        .json({ message: "chat already exist", chat: existingChat });
+    } else {
+      // Create new chat with friend
+
+      // Create new chat object
+      const chat = new Chat({
+        users: [{ userId: friendId }, { userId: userId }],
+      });
+
+      await user.messages.singlechatcontent.unshift(chat);
+      await friend.messages.singlechatcontent.unshift(chat);
+
+      // Save update
+      const newChat = await chat.save();
+      await friend.save();
+      await user.save();
+
+      res.status(200).json({ chat: newChat });
+    }
+  } catch (err) {
+    error.error(err, next);
+  }
+};
+
 /****************
  * Send Message *
  ****************/
@@ -923,7 +968,7 @@ module.exports.createChatroom = async (req, res, next) => {
     await newChatRoom.save();
 
     // add chatroom to user chatroom array
-    await user.messages.chatroomcontent.push(newChatRoom._id);
+    await user.messages.chatroomcontent.unshift(newChatRoom._id);
 
     // save changes
     await user.save();
@@ -984,10 +1029,10 @@ module.exports.getUserFriends = async (req, res, next) => {
 
   try {
     // Get and validate user
-    const user = await User.findById(
-      userId,
-      "friends firstName lastName"
-    ).populate("friends", "firstName lastName profileImage");
+    const user = await User.findById(userId).populate(
+      "friends",
+      "firstName lastName profileImage"
+    );
 
     if (!user) {
       error.errorHandler(res, "user not found", "user");
@@ -995,9 +1040,10 @@ module.exports.getUserFriends = async (req, res, next) => {
     }
 
     // Continue if there are no errors
+    const friends = user.friends;
 
     // Send response to client
-    res.status(200).json({ message: "friends fetched successfully", user });
+    res.status(200).json({ message: "friends fetched successfully", friends });
   } catch (err) {
     error.error(err, next);
   }

@@ -595,7 +595,7 @@ module.exports.addMoreStock = async (req, res, next) => {
       quantity,
     });
 
-    inventory.total += quantity;
+    inventory.total += Number(quantity);
 
     const addedInventory = await inventory.save();
 
@@ -615,7 +615,6 @@ module.exports.addMoreStock = async (req, res, next) => {
  *******************************/
 module.exports.removeStock = async (req, res, next) => {
   const inventoryId = req.params.inventoryId,
-    inventId = req.body.inventId,
     quantity = req.body.quantity;
 
   try {
@@ -627,16 +626,16 @@ module.exports.removeStock = async (req, res, next) => {
     }
 
     // continue if no errors
-    const invent = await inventory.inventory.find(
-      (invent) => invent._id.toString() === inventId.toString()
-    );
+    // const invent = await inventory.inventory.find(
+    //   (invent) => invent._id.toString() === inventId.toString()
+    // );
 
-    if (invent.quantity < quantity) {
-      error.errorHandler(res, "quantity to large for category", "inventory");
-      return;
-    }
-    invent.quantity -= quantity;
-    inventory.total -= quantity;
+    // if (invent.quantity < quantity) {
+    //   error.errorHandler(res, "quantity to large for category", "inventory");
+    //   return;
+    // }
+    // invent.quantity -= quantity;
+    inventory.total -= Number(quantity);
 
     const addedInventory = await inventory.save();
 

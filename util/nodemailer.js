@@ -1,6 +1,14 @@
 const nodemailer = require("nodemailer");
 
-const mailer = async (email, subject, message, username, link, btnText) => {
+const mailer = async (
+  email,
+  subject,
+  message,
+  username,
+  link,
+  btnText,
+  link2
+) => {
   const transporter = await nodemailer.createTransport({
     host: "smtpout.secureserver.net",
     secure: true,
@@ -21,9 +29,59 @@ const mailer = async (email, subject, message, username, link, btnText) => {
     from: "<info@pharmapoolng.com>",
     to: email,
     subject: subject,
-    html: `<h1>Dear ${username}</h1>
-              <p>${message}</p>
-              <button style="font-size: large; width: 30%; height: 3rem; font-weight: bold; background-color: blue;" ><a href="${link}" style="text-decoration: none; color: white;">${btnText}</a></button>`,
+    html: `<div
+      style="
+        width: 100%;
+        padding: 2rem 1rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      "
+    >
+      <img
+        src="https://res.cloudinary.com/dex0mkckw/image/upload/v1715731041/c3957c0f04ee9096d7c0d6a7.png"
+        alt="logo"
+        width="100"
+        height="100"
+      />
+      <h2>Account Verification</h2>
+      <div
+        style="
+          margin-top: 1rem;
+          width: 80%;
+          text-align: center;
+          border: #004d40 1px solid;
+          padding: 2rem;
+          background-color: #ecfbfa;
+        "
+      >
+        <h3>${username},</h3>
+        <p>
+          ${message}
+        </p>
+        <button
+          style="
+            font-size: large;
+            width: max-content;
+            height: max-content;
+            font-weight: bold;
+            background-color: #004d40;
+            border: none;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-radius: 0.2rem;
+          "
+        >
+          <a
+            href=${link}
+            style="text-decoration: none; color: white"
+            onclick="window.open(${link2})"
+            >${btnText}</a
+          >
+        </button>
+      </div>
+    </div>`,
   };
 
   await transporter.sendMail(mailOptions, (error, info) => {
