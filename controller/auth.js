@@ -61,9 +61,9 @@ module.exports.userSignup = async (req, res, next) => {
         "sign up verification",
         "Welcome to Pharmapool. Kindly click the button to verify your account",
         `${firstName} ${lastName}`,
-        "https://facebook.com",
+        `http://127.0.0.1:8000/api/auth/verify/${email}`,
         "verify",
-        "https://google.com"
+        `https://pharmapoolng.com/verify/signin/${email}`
       );
 
       // Save user in database
