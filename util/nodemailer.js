@@ -31,31 +31,25 @@ const mailer = async (
     subject: subject,
     html: `<div
       style="
-        width: 100%;
-        padding: 2rem 1rem;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
+        margin-top: 1rem;
+        width: 100vw;
+        text-align: center;
+        border: #004d40 1px solid;
+        padding: 2rem;
+        background-color: #ecfbfa;
       "
     >
       <img
         src="https://res.cloudinary.com/dex0mkckw/image/upload/v1715731041/c3957c0f04ee9096d7c0d6a7.png"
         alt="logo"
-        width="100"
-        height="100"
+        width="70"
+        height="70"
       />
       <h2>Account Verification</h2>
-      <div
-        style="
-          margin-top: 1rem;
-          width: 80%;
-          text-align: center;
-          border: #004d40 1px solid;
-          padding: 2rem;
-          background-color: #ecfbfa;
-        "
-      >
         <h3>${username},</h3>
         <p>
           ${message}
@@ -80,7 +74,6 @@ const mailer = async (
             >${btnText}</a
           >
         </button>
-      </div>
     </div>`,
   };
 
