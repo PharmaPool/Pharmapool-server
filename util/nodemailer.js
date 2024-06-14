@@ -29,7 +29,15 @@ const mailer = async (
     from: "<info@pharmapoolng.com>",
     to: email,
     subject: subject,
-    html: `<div
+    html: `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <div
       style="
         display: flex;
         flex-direction: column;
@@ -50,31 +58,32 @@ const mailer = async (
         height="70"
       />
       <h2>Account Verification</h2>
-        <h3>${username},</h3>
-        <p>
-          ${message}
-        </p>
-        <button
-          style="
-            font-size: large;
-            width: max-content;
-            height: max-content;
-            font-weight: bold;
-            background-color: #004d40;
-            border: none;
-            padding: 0.5rem 1rem;
-            cursor: pointer;
-            border-radius: 0.2rem;
-          "
+      <h3>${username},</h3>
+      <p>${message}</p>
+      <button
+        style="
+          font-size: large;
+          width: max-content;
+          height: max-content;
+          font-weight: bold;
+          background-color: #004d40;
+          border: none;
+          padding: 0.5rem 1rem;
+          cursor: pointer;
+          border-radius: 0.2rem;
+        "
+      >
+        <a
+          href="${link}"
+          style="text-decoration: none; color: white"
+          onclick="window.open(${link2})"
+          >${btnText}</a
         >
-          <a
-            href=${link}
-            style="text-decoration: none; color: white"
-            onclick="window.open(${link2})"
-            >${btnText}</a
-          >
-        </button>
-    </div>`,
+      </button>
+    </div>
+  </body>
+</html>
+`,
   };
 
   await transporter.sendMail(mailOptions, (error, info) => {
