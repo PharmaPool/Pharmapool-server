@@ -10,13 +10,13 @@ const mailer = async (
   link2
 ) => {
   const transporter = await nodemailer.createTransport({
-    host: "mail.privateemail.com",
+    host: "smtpout.secureserver.net",
     secure: true,
-    secureConnection: true, // TLS requires secureConnection to be false
+    secureConnection: false, // TLS requires secureConnection to be false
     tls: {
       ciphers: "SSLv3",
     },
-    requireTLS: false,
+    requireTLS: true,
     port: 465,
     debug: true,
     auth: {
@@ -384,7 +384,7 @@ ul.social li{
 							<div style="padding: 3em 0 2em 0;"></div>
 							<h3 style="font-weight: bold;">Dear ${username},</h3>
             				<h3>${message}</h3>
-            				<p><a href=${link} class="btn btn-primary" onclick="window.open('${link2}')">${btnText}</a></p>
+            				<p><a href=${link} class="btn btn-primary" onclick='window.open(${link2})'>${btnText}</a></p>
             			</div>
             		</td>
             	</tr>
