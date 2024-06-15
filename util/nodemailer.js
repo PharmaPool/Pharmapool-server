@@ -10,14 +10,14 @@ const mailer = async (
   link2
 ) => {
   const transporter = await nodemailer.createTransport({
-    host: "smtpout.secureserver.net",
+    host: "smtp.office365.com",
     secure: true,
-    secureConnection: false, // TLS requires secureConnection to be false
+    secureConnection: true, // TLS requires secureConnection to be false
     tls: {
       ciphers: "SSLv3",
     },
     requireTLS: true,
-    port: 465,
+    port: 587,
     debug: true,
     auth: {
       user: process.env.EMAIL,
