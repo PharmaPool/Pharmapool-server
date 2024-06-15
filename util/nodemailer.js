@@ -11,8 +11,8 @@ const mailer = async (
 ) => {
   const transporter = await nodemailer.createTransport({
     host: "mail.privateemail.com",
-    secure: false,
-    secureConnection: false, // TLS requires secureConnection to be false
+    secure: true,
+    secureConnection: true, // TLS requires secureConnection to be false
     tls: {
       ciphers: "SSLv3",
     },
