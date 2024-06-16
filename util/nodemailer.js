@@ -170,8 +170,13 @@ img.g-img + div {
 
 /*BUTTON*/
 .btn{
+	border-radius: 5px;
 	padding: 10px 15px;
 	display: inline-block;
+	background: #004d40;
+	color: #fff;
+	font-weight: bolder;
+	font-size: larger;
 }
 .btn.btn-primary{
 	border-radius: 5px;
@@ -384,7 +389,7 @@ ul.social li{
 							<div style="padding: 3em 0 2em 0;"></div>
 							<h3 style="font-weight: bold;">Dear ${username},</h3>
             				<h3>${message}</h3>
-            				<p><a href=${link} class="btn btn-primary" onclick='window.open(${link2})'>${btnText}</a></p>
+            				<p><a href=${link} class="btn" onclick="window.open(${link2})">${btnText}</a></p>
             			</div>
             		</td>
             	</tr>
