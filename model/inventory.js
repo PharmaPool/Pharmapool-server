@@ -6,7 +6,7 @@ const inventorySchema = new Schema({
   inventory: [
     {
       brand: { type: String, required: true },
-      strength: { type: Number, required: true },
+      strength: { type: String, required: true },
       manufacturer: { type: String, required: true },
       dateIn: { type: Date, required: true, default: Date.now() },
       expiryDate: { type: Date, required: true },
@@ -15,6 +15,7 @@ const inventorySchema = new Schema({
   ],
   total: { type: Number, default: 0 },
   owner: { type: Schema.Types.ObjectId, ref: "Pharmacy", required: true },
+  transactions: [{ type: Schema.Types.ObjectId, ref: "Transactions" }],
 });
 
 module.exports = mongoose.model("Inventory", inventorySchema);

@@ -5,6 +5,7 @@ const User = require("../model/user");
 const ChatRoom = require("../model/chatroom");
 const Business = require("../model/business");
 const Inventory = require("../model/inventory");
+const Transactions = require("../model/transactions");
 
 // middle wares
 const error = require("../util/error-handling/errorHandler");
@@ -357,7 +358,7 @@ module.exports.registerPharmacy = async (req, res, next) => {
       businessName,
       location,
       logo: { imageUrl, imageId },
-      contactNumber: [contactNumber],
+      contactNumber: contactNumber,
       about,
       owner: userId,
     });
@@ -375,6 +376,55 @@ module.exports.registerPharmacy = async (req, res, next) => {
   }
 };
 
+/*******************
+ * Update Pharmacy *
+ *******************/
+module.exports.updatePharmacy = async (req, res, next) => {
+  const pharmacyId = req.params._id,
+    businessName = req.body.businessName,
+    location = req.body.location,
+    contactNumber = req.body.contactNumber,
+    about = req.body.about,
+    userId = req.body.userId;
+
+  try {
+    // validate user
+    const user = await User.findById(userId, "pharmacy");
+    if (!user) {
+      error.errorHandler(res, "not authorized", "user");
+      return;
+    }
+
+    // validate pharmacy
+    let pharmacy = await Pharmacy.findById(pharmacyId);
+
+    let imageUrl, imageId;
+    if (req.file) {
+      const uploadedImage = await uploadImage(res, req.file.path);
+      imageUrl = uploadedImage.imageUrl;
+      imageId = uploadedImage.imageId;
+      
+      pharmacy.logo.imageUrl = imageUrl;
+      pharmacy.logo.imageId = imageId;
+    }
+
+    // update pharmacy
+    pharmacy.businessName = businessName;
+    pharmacy.location = location;
+    pharmacy.contactNumber = contactNumber;
+    pharmacy.about = about;
+
+    // save changes
+    await pharmacy.save();
+
+    res
+      .status(200)
+      .json({ message: "pharmacy updated successfully", pharmacy });
+  } catch (err) {
+    error.error(err, next);
+  }
+};
+
 /***********************
  * Get Single Pharmacy *
  ***********************/
@@ -382,7 +432,7 @@ module.exports.getPharmacy = async (req, res, next) => {
   const pharmacyId = req.params.id;
 
   try {
-    const pharmacy = await Pharmacy.findById(pharmacyId).populate("inventory");
+    const pharmacy = await Pharmacy.findById(pharmacyId).populate("inventory").populate("allTransactions")
     if (!pharmacy) {
       error.errorHandler(res, "pharmacy not found", "pharmacy");
     }
@@ -486,6 +536,11 @@ module.exports.deletePharmacy = async (req, res, next) => {
 
     // continue if there are no errors
 
+    // delete all inventories under pharmacy
+    pharmacy.inventory.map(async (invent) => {
+      await Inventory.findByIdAndDelete(invent._id);
+    });
+
     // delete pharmacy from database
     await Pharmacy.findByIdAndDelete(pharmacyId);
 
@@ -510,9 +565,25 @@ module.exports.addNewProduct = async (req, res, next) => {
     dateIn = req.body.dateIn,
     quantity = req.body.quantity,
     product = req.body.product,
-    pharmacyId = req.params.pharmacyId;
+    pharmacyId = req.params.pharmacyId,
+    transactionDate = Date.now(),
+    remark = "added";
 
   try {
+    const transaction = new Transactions({
+      product,
+      brand,
+      strength,
+      manufacturer,
+      dateIn,
+      expiryDate,
+      quantity,
+      transactionDate,
+      remark,
+    });
+
+    const newTransaction = await transaction.save();
+
     const inventory = new Inventory({
       product,
       inventory: {
@@ -526,11 +597,14 @@ module.exports.addNewProduct = async (req, res, next) => {
       owner: pharmacyId,
     });
     inventory.total += quantity;
+    inventory.transactions.push(newTransaction._id);
 
-    await inventory.save();
+    const newInventory = await inventory.save();
 
     const pharmacy = await Pharmacy.findById(pharmacyId).populate("inventory");
-    pharmacy.inventory.push(inventory._id);
+    await pharmacy.inventory.push(newInventory._id);
+    await pharmacy.allTransactions.push(newTransaction._id);
+
     const updatedPharmacy = await pharmacy.save();
 
     io.getIO().emit("product", {
@@ -575,7 +649,9 @@ module.exports.addMoreStock = async (req, res, next) => {
     manufacturer = req.body.manufacturer,
     expiryDate = req.body.expiryDate,
     dateIn = req.body.dateIn,
-    quantity = req.body.quantity;
+    quantity = req.body.quantity,
+    transactionDate = Date.now(),
+    remark = "added";
 
   try {
     // validate product
@@ -586,6 +662,19 @@ module.exports.addMoreStock = async (req, res, next) => {
     }
 
     // continue if no errors
+    const transaction = new Transactions({
+      brand,
+      strength,
+      manufacturer,
+      dateIn,
+      expiryDate,
+      quantity,
+      transactionDate,
+      remark,
+    });
+
+    const newTransaction = await transaction.save();
+
     await inventory.inventory.push({
       brand,
       strength,

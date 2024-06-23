@@ -16,7 +16,7 @@ router.get("/posts", userController.getPosts);
 router.post("/friend-request", userController.sendRequest);
 router.get("/friend-request/:_id", userController.getFriendRequests);
 router.delete("/friend-request", userController.clearFriendRequestCount);
-router.post("/accept-friend", userController.acceptRequest);
+router.post("/accept-request", userController.acceptRequest);
 router.post("/decline-friend", userController.declineRequest);
 router.post("/cancel-friend", userController.cancelFriendRequest);
 router.delete("/remove-friend", userController.removeFriend);

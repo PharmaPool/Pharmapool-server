@@ -28,10 +28,16 @@ module.exports.createPost = async (req, res, next) => {
       const user = await userExists("id", userId);
 
       // Check if user is undefined
-      if (!user) error.errorHandler(res, "not authorize", "user");
+      if (!user) {
+        error.errorHandler(res, "not authorize", "user");
+        return;
+      }
 
       // Check if both inputs are valid
-      if (!content) error.errorHandler(res, "no content posted", "input");
+      if (!content) {
+        error.errorHandler(res, "no content posted", "input");
+        return;
+      }
 
       // Continue if there are no errors
 
@@ -59,17 +65,22 @@ module.exports.createPost = async (req, res, next) => {
     }
   } else {
     try {
-      const uploadedImage = await uploadImage(req.file.path);
+      const uploadedImage = await uploadImage(res, req.file.path);
 
       // Get current user
       const user = await userExists("id", userId);
 
       // Check if user is undefined
-      if (!user) error.errorHandler(res, "not authorizedd", "user");
+      if (!user) {
+        error.errorHandler(res, "not authorizedd", "user");
+        return;
+      }
 
       // Check if both inputs are invalid
-      if (!uploadedImage.imageUrl && !content)
+      if (!uploadedImage.imageUrl && !content) {
         error.errorHandler(res, "no content posted", "input");
+        return;
+      }
 
       // Continue if there are no errors
       let imageUrl, imageId;
@@ -89,7 +100,7 @@ module.exports.createPost = async (req, res, next) => {
       });
 
       // Add new post to user posts array
-      user.posts.push(post);
+      user.posts.unshift(post);
       await user.save();
 
       // Save post to database
@@ -299,6 +310,7 @@ module.exports.sendRequest = async (req, res, next) => {
 
     // Send response to client
     res.status(200).json({
+      success: true,
       message: "friend request sent",
       friend: receivingUser,
     });

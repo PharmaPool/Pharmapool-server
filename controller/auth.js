@@ -58,12 +58,11 @@ module.exports.userSignup = async (req, res, next) => {
       // Send verification mail to user
       await mailer(
         email,
-        "sign up verification",
+        "Verify you email",
         "Welcome to Pharmapool. Kindly click the button to verify your account",
         `${firstName} ${lastName}`,
-        `https://www.pharmapoolserver.com/api/auth/verify/${email}`,
-        "verify",
-        `https://pharmapoolng.com/verify/signin/${email}`
+        `https://pharmapoolng.com/verify/${email}`,
+        "verify"
       );
 
       // Save user in database

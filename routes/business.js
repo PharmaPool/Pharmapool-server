@@ -24,6 +24,11 @@ router.post(
   upload.single("file"),
   businessController.registerPharmacy
 );
+router.patch(
+  "/pharmacy/:_id",
+  upload.single("file"),
+  businessController.updatePharmacy
+);
 router.delete("/pharmacy/:_id", businessController.deletePharmacy);
 
 router.post("/inventory/addproduct/:pharmacyId", businessController.addNewProduct)
