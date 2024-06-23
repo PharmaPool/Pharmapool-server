@@ -32,6 +32,7 @@ module.exports.getPosts = async (req, res, next) => {
     //   .populate(populatePost);
     posts.sort((a, b) => b.updatedAt - a.updatedAt);
 
+    io.getIO().emit("posts", { action: "comment", posts });
     res.status(200).json({ posts });
   } catch (err) {
     error.error(err, next);
@@ -247,13 +248,13 @@ module.exports.addLikeToPost = async (req, res, next) => {
     const user = await User.findById(userId, "profileImage");
 
     // Check if user exists
-    const alreadyLiked = post.likes.filter(
-      (post) => post._id.toString() === userId.toString()
-    );
+    // const alreadyLiked = post.likes.filter(
+    //   (post) => post._id.toString() === userId.toString()
+    // );
 
-    if (alreadyLiked.length !== 0) {
-      return res.status(200).json({ status: 422 });
-    }
+    // if (alreadyLiked.length !== 0) {
+    //   return res.status(200).json({ status: 422 });
+    // }
 
     // Continue if there are no errors
 
@@ -284,13 +285,13 @@ module.exports.addLikeToPost = async (req, res, next) => {
       );
     }
 
-    io.getIO().emit("posts", { action: "post like", post: updatedPost });
+    io.getIO().emit("post", { action: "post like", post: updatedPost });
     io.getIO().emit("notification");
 
     // Send response to client
     res.status(200).json({ message: "you have liked this post" });
   } catch (err) {
-    error.error(err);
+    error.error(err, next);
   }
 };
 
