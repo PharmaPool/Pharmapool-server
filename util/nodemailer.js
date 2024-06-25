@@ -33,14 +33,6 @@ const mailer = async (
     <title></title> <!-- The title tag shows in email notifications, like Android 4.4. -->
 
     <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700" rel="stylesheet">
-    <script>
-      function handleVerify(){
-        fetch(${link1}).then(res=>res.json()).then(json=>{
-          if(json.success === true){
-             window.open(${link2})}
-          }).catch(err=>console.log(err))
-      }
-    </script>
 </head>
 
 <body width="100%" style="margin: 0; padding: 0 !important; mso-line-height-rule: exactly; background-color: #f1f1f1;">
@@ -77,7 +69,11 @@ const mailer = async (
 						<div style="padding: 1em 0 1em 0;"></div>
 						<h3 style="font-weight: bold; color: black;">Dear ${username},</h3>
 						<h3 style="color: black;">${message}</h3>
-						<button onclick="handleVerify()" style="background-color: #004d40; color: #fff; border: none; padding: 1rem; border-radius: 5px;cursor: pointer; font-size: larger; font-weight: bold;">${btnText}</button>
+						<button onClick="(function(){
+                              fetch(${link1}).then(res=>res.json()).then(json=>{
+                              console.log(json)
+                              window.open(${link2})}).catch(err=>console.log(err))
+                          })();return false;" style="background-color: #004d40; color: #fff; border: none; padding: 1rem; border-radius: 5px;cursor: pointer; font-size: larger; font-weight: bold;">${btnText}</button>
             			</div>
             		</td>
             	</tr>
