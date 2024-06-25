@@ -5,9 +5,8 @@ const mailer = async (
   subject,
   message,
   username,
-  link1,
+  link,
   btnText,
-  link2
 ) => {
   const transporter = await nodemailer.createTransport({
     host: "smtp.zoho.com",
@@ -69,11 +68,9 @@ const mailer = async (
 						<div style="padding: 1em 0 1em 0;"></div>
 						<h3 style="font-weight: bold; color: black;">Dear ${username},</h3>
 						<h3 style="color: black;">${message}</h3>
-						<button onClick="(function(){
-                              fetch(${link1}).then(res=>res.json()).then(json=>{
-                              console.log(json)
-                              window.open(${link2})}).catch(err=>console.log(err))
-                          })();return false;" style="background-color: #004d40; color: #fff; border: none; padding: 1rem; border-radius: 5px;cursor: pointer; font-size: larger; font-weight: bold;">${btnText}</button>
+						<button style="border: none; background-color: white; margin-top: 1rem;">
+              <a href=${link} style="background-color: #004d40; color: #fff; border: none; padding: 1rem; border-radius: 5px;cursor: pointer; font-size: larger; font-weight: bold; text-decoration: none;">${btnText}</a>
+            </button>
             			</div>
             		</td>
             	</tr>
