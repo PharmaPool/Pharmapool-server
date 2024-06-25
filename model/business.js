@@ -23,6 +23,10 @@ const businessesSchema = new Schema({
   ],
   status: { type: Boolean, required: true, default: false },
   deadline: { type: String, required: true },
+  createdAt: {
+    type: Date,
+    default: Date.now(),
+  },
 });
 
 module.exports = mongoose.model("Business", businessesSchema);

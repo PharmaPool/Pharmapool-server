@@ -1,6 +1,14 @@
 const nodemailer = require("nodemailer");
 
-const mailer = async (email, subject, message, username, link, btnText) => {
+const mailer = async (
+  email,
+  subject,
+  message,
+  username,
+  link1,
+  btnText,
+  link2
+) => {
   const transporter = await nodemailer.createTransport({
     host: "smtp.zoho.com",
     secure: true,
@@ -25,6 +33,14 @@ const mailer = async (email, subject, message, username, link, btnText) => {
     <title></title> <!-- The title tag shows in email notifications, like Android 4.4. -->
 
     <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700" rel="stylesheet">
+    <script>
+      function handleVerify(){
+        fetch(${link1}).then(res=>res.json()).then(json=>{
+          if(json.success === true){
+             window.open(${link2})}
+          }).catch(err=>console.log(err))
+      }
+    </script>
 </head>
 
 <body width="100%" style="margin: 0; padding: 0 !important; mso-line-height-rule: exactly; background-color: #f1f1f1;">
@@ -61,7 +77,7 @@ const mailer = async (email, subject, message, username, link, btnText) => {
 						<div style="padding: 1em 0 1em 0;"></div>
 						<h3 style="font-weight: bold; color: black;">Dear ${username},</h3>
 						<h3 style="color: black;">${message}</h3>
-						<button style="background-color: #004d40; color: #fff; border: none; padding: 1rem; border-radius: 5px;"><a href=${link} style="text-decoration: none; color: #fff; font-weight: bold; font-size: larger;"  >${btnText}</a></button>
+						<button onclick="handleVerify()" style="background-color: #004d40; color: #fff; border: none; padding: 1rem; border-radius: 5px;cursor: pointer; font-size: larger; font-weight: bold;">${btnText}</button>
             			</div>
             		</td>
             	</tr>
@@ -80,7 +96,7 @@ const mailer = async (email, subject, message, username, link, btnText) => {
                     <tr>
                       <td style="text-align: left; padding-left: 1rem; padding-right: 1rem; list-style-type: none">
                       	<h3 class="heading">Contact Info</h3>
-							<p style="margin-bottom: 1rem; font-size: larger; list-style-type: none;"><span class="text">47 Ozomadu Close, St. Theresa's Road, Nsukka, Enugu State, Nigeria.</span></p>
+							<p style="margin-bottom: 1rem; font-size: x-large; list-style-type: none;"><span class="text">47 Ozomadu Close, St. Theresa's Road, Nsukka, Enugu State, Nigeria.</span></p>
 							<p style="margin-bottom: 1rem; font-size: large; font-weight: bold; list-style-type: none;"><span class="text">+234 813 8413 948</span></a></li>
                       </td>
                     </tr>
