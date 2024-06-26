@@ -89,7 +89,7 @@ const mailer = async (
                     <tr>
                       <td style="text-align: left; padding-left: 1rem; padding-right: 1rem; list-style-type: none">
                       	<h3 class="heading">Contact Info</h3>
-							<p style="margin-bottom: 1rem; font-size: x-large; list-style-type: none;"><span class="text">47 Ozomadu Close, St. Theresa's Road, Nsukka, Enugu State, Nigeria.</span></p>
+							<p style="margin-bottom: 1rem; font-size: large; list-style-type: none;"><span class="text">47 Ozomadu Close, St. Theresa's Road, Nsukka, Enugu State, Nigeria.</span></p>
 							<p style="margin-bottom: 1rem; font-size: large; font-weight: bold; list-style-type: none;"><span class="text">+234 813 8413 948</span></a></li>
                       </td>
                     </tr>
