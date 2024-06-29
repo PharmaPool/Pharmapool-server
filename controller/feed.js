@@ -26,11 +26,11 @@ module.exports.getPosts = async (req, res, next) => {
     let posts;
 
     posts = await Post.find()
-      .sort({ updatedAt: -1 })
+      .sort({ createdAt: -1 })
       .populate("creator", "firstName lastName fullName profileImage")
       .populate("likes", "firstName lastName fullName profileImage");
     //   .populate(populatePost);
-    posts.sort((a, b) => b.updatedAt - a.updatedAt);
+    posts.sort((a, b) => b.createdAt - a.createdAt);
 
     io.getIO().emit("posts", { action: "comment", posts });
     res.status(200).json({ posts });
@@ -92,16 +92,20 @@ module.exports.postComment = async (req, res, next) => {
     }
 
     // Push comment unto comments array
-    post.comments.push(comment);
+    post.comments.unshift(comment);
 
     // Save comment to post
     await post.save();
 
     // Get updated post
-    const updatedPost = await Post.findById(
-      postId,
-      "comments creator"
-    ).populate("comments.user", "firstName lastName fullName profileImage");
+    const updatedPost = await Post.findById(postId)
+      .populate("likes", "firstName lastName fullName profileImage")
+      .populate("comments.user", "firstName lastName fullName profileImage")
+      .populate(
+        "comments.replies.user",
+        "firstName lastName fullName profileImage"
+      )
+      .populate("creator", "firstName lastName fullName profileImage");
 
     // Don't send out notification if current userId matches post creator id
     if (userId !== post.creator._id.toString()) {
@@ -116,7 +120,7 @@ module.exports.postComment = async (req, res, next) => {
       );
     }
 
-    io.getIO().emit("post", { action: "comment", updatedPost });
+    io.getIO().emit("post", { action: "post comment", post: updatedPost });
 
     // Send response to client
     res.status(200).json({ message: "comment successfully added" });
@@ -433,7 +437,7 @@ module.exports.addCommentLike = async (req, res, next) => {
     // Send response to client
     res
       .status(200)
-      .json({ message: "you have liked this comment", post: updatedPost });
+      .json({ message: "you have liked this comment", updatedPost });
   } catch (err) {
     error.error(err, next);
   }
@@ -507,7 +511,7 @@ module.exports.removeCommentLike = async (req, res, next) => {
     io.getIO().emit("notification");
 
     // Send response to client
-    res.status(200).json({ message: "like successfully removed" });
+    res.status(200).json({ message: "like successfully removed", updatedPost });
   } catch (err) {
     error.error(err, next);
   }
@@ -570,9 +574,18 @@ module.exports.addReply = async (req, res, next) => {
     await post.save();
 
     // Get updated post
-    const updatedPost = await Post.findById(postId, "comments")
-      .populate("comments.user")
-      .populate("comments.replies.user");
+    const updatedPost = await Post.findById(postId)
+      .populate("creator", "firstName lastName fullName profileImage")
+      .populate("comments.user", "firstName lastName fullName profileImage")
+      .populate("comments.likes", "firstName lastName fullName profileImage")
+      .populate(
+        "comments.replies.likes",
+        "firstName lastName fullName profileImage"
+      )
+      .populate(
+        "comments.replies.user",
+        "firstName lastName fullName profileImage"
+      );
 
     // don't send a notification if current userId matches updatedPost comments userId
     if (req.userId !== updatedPost.comments[commentIndex].user._id.toString()) {
@@ -586,10 +599,10 @@ module.exports.addReply = async (req, res, next) => {
       );
     }
 
-    io.getIO().emit("posts", { action: "reply" });
+    io.getIO().emit("post", { action: "add comment reply", post: updatedPost });
 
     // Send response to client
-    res.status(200).json({ message: "reply add successfully" });
+    res.status(200).json({ message: "reply add successfully", updatedPost });
   } catch (err) {
     error.error(err, next);
   }

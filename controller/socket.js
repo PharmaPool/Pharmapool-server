@@ -56,7 +56,14 @@ module.exports = (socket) => {
         // Add count to messages for recipient user
         friend.messages.count += 1;
 
+        await friend.messages.singlechatcontent.pull(existingChat._id);
+        await user.messages.singlechatcontent.pull(existingChat._id);
+
+        await friend.messages.singlechatcontent.unshift(existingChat);
+        await user.messages.singlechatcontent.unshift(existingChat);
+
         await friend.save();
+        await user.save();
 
         // Save changes
         await existingChat.save();

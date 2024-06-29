@@ -48,7 +48,7 @@ module.exports.createPost = async (req, res, next) => {
       });
 
       // Add new post to post array in user
-      user.posts.push(post);
+      user.posts.unshift(post);
       await user.save();
 
       // Save post to database
@@ -237,6 +237,8 @@ module.exports.getPosts = async (req, res, next) => {
     // Continue if there are no errors
 
     const posts = user.posts;
+
+    io.getIO().emit("posts", { action: "get posts", posts})
 
     // send response to client
     res.status(200).json({ message: "posts fetched successfully", posts });
@@ -583,7 +585,14 @@ module.exports.sendMessage = async (req, res, next) => {
       // Add count to messages for recipient user
       friend.messages.count += 1;
 
+      await friend.messages.singlechatcontent.pull(existingChat._id);
+      await user.messages.singlechatcontent.pull(existingChat._id);
+
+      await friend.messages.singlechatcontent.unshift(existingChat);
+      await user.messages.singlechatcontent.unshift(existingChat);
+
       await friend.save();
+      await user.save();
 
       // Save changes
       await existingChat.save();

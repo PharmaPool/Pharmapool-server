@@ -23,7 +23,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: "*",
+    origin: "https://pharmapoolng.com",
   })
 );
 

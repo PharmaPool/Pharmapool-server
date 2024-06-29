@@ -11,9 +11,9 @@ router.get("/post/:postId", feedController.getSinglePost);
 router.patch("/post/:postId", feedController.editPost);
 
 // post comments routes
-router.post("/post/comment/:postId", feedController.postComment);
-router.patch("/post/comment/:postId", feedController.editComment);
-router.delete("/post/comment/:postId", feedController.deleteComment);
+router.post("/post/:postId/comment", feedController.postComment);
+router.patch("/post/:postId/comment", feedController.editComment);
+router.delete("/post/:postId/comment", feedController.deleteComment);
 
 // post like routes
 router.post("/post/:postId/like", feedController.addLikeToPost);
