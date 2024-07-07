@@ -61,8 +61,8 @@ module.exports.userSignup = async (req, res, next) => {
         "Verify you email",
         "Welcome to Pharmapool. Kindly click the button to verify your account",
         `${firstName} ${lastName}`,
-        `https://pharmapoolng.com/verify`,
-        "verify",
+        `https://pharmapoolng.com/verify/${user._id}`,
+        "verify"
       );
 
       // Save user in database
@@ -127,11 +127,11 @@ module.exports.userLogin = async (req, res, next) => {
  * Verify Account *
  ******************/
 module.exports.verifyAccount = async (req, res, next) => {
-  const email = req.params.email;
+  const userId = req.params._id;
 
   try {
     // verify user
-    const user = await User.findOne({ "details.email": email });
+    const user = await User.findById(userId);
     if (!user) {
       error.errorHandler(res, "invalid user", "user");
       return;

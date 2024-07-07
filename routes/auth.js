@@ -18,7 +18,7 @@ router.post(
   ],
   authController.userSignup
 );
-router.get("/verify/:email", authController.verifyAccount);
+router.get("/verify/:_id", authController.verifyAccount);
 router.post(
   "/signin",
   [

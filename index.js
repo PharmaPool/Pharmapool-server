@@ -23,7 +23,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: "https://pharmapoolng.com",
+    origin: "http://localhost:3000",
   })
 );
 
