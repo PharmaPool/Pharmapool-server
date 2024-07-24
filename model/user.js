@@ -4,6 +4,8 @@ const Schema = mongoose.Schema;
 const userSchema = new Schema(
   {
     verified: { type: Boolean, default: false },
+    paidVerified: { type: Boolean, default: false },
+    loggedIn: { type: Boolean, default: false },
     firstName: {
       type: String,
       required: true,
@@ -176,6 +178,7 @@ const userSchema = new Schema(
     },
     resetToken: String,
     resetExpiration: Date,
+    otp: { type: Schema.Types.ObjectId, ref: "OTP" },
   },
   {
     toJSON: {

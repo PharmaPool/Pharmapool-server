@@ -52,19 +52,17 @@ app.use((req, res, next) => {
   next();
 });
 
+// Auth route which bypasses auth check
+app.use("/api/auth", authRoutes);
+
 // Authentication check
-// app.use(isAuth);
+app.use(isAuth);
 
 // Endpoints
-app.use("/api/auth", authRoutes);
 app.use("/api/feed", feedRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/business", businessRoutes);
-
-app.get("/", (req, res, next) => {
-  res.send("hello world")
-});
 
 app.use((req, res, next) => {
   if (req.originalUrl && req.originalUrl.split("/").pop() === "favicon.ico") {
@@ -74,13 +72,14 @@ app.use((req, res, next) => {
 });
 
 // Error handler
-app.use((err, req, res, next) => {
-  const status = err.statusCode,
-    message = err.message,
-    type = err.type || "";
+// app.use((err, req, res, next) => {
+//   const status = err.statusCode,
+//     message = err.message,
+//     type = err.type || "";
 
-  res.status(status).json({ message, status, type });
-});
+//   res.status(status).json({ message, status, type });
+//   next()
+// });
 
 mongoose
   .connect(process.env.MONGO_URL)

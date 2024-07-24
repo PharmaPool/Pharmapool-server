@@ -3,7 +3,11 @@ const Schema = mongoose.Schema;
 
 const chatroomSchema = new Schema({
   title: { type: String, required: true },
-  profileImage:{type: String, default: "https://res.cloudinary.com/dex0mkckw/image/upload/v1713479804/10562295368_si7010.png"},
+  profileImage: {
+    type: String,
+    default:
+      "https://res.cloudinary.com/dex0mkckw/image/upload/v1713479804/10562295368_si7010.png",
+  },
   admin: {
     type: Schema.Types.ObjectId,
     ref: "User",
@@ -34,6 +38,7 @@ const chatroomSchema = new Schema({
       },
     },
   ],
+  wallet: [{ type: Schema.Types.ObjectId, required: true, default: "" }],
 });
 
 module.exports = mongoose.model("ChatRoom", chatroomSchema);

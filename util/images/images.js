@@ -1,5 +1,5 @@
 const cloudinary = require("cloudinary").v2;
-const { generateId } = require("../idGenerator");
+const { generateId } = require("../otp");
 const error = require("../error-handling/errorHandler");
 
 cloudinary.config({
@@ -17,8 +17,8 @@ module.exports = {
       { public_id: `${public_id}` },
       (err, result) => {
         if (err) {
-          error.errorHandler(res, "image not uploaded", "image")
-          return
+          error.errorHandler(res, "image not uploaded", "image");
+          return;
         }
 
         imageUrl = result.url;

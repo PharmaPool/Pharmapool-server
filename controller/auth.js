@@ -12,6 +12,7 @@ const error = require("../util/error-handling/errorHandler");
 
 const { userExists } = require("../util/user");
 const mailer = require("../util/nodemailer");
+const { generateOTP, verifyOTP } = require("../util/otp");
 
 /**************
  * User Signup*
@@ -29,8 +30,8 @@ module.exports.userSignup = async (req, res, next) => {
 
   try {
     // Check for validation errors
-    // const validatorErrors = validationResult(req);
-    // error.validationError(validatorErrors, res);
+    //const validatorErrors = validationResult(req);
+    //error.validationError(validatorErrors, res);
 
     // Check if a email already exist
     const emailExist = await userExists("email", email);
@@ -39,6 +40,9 @@ module.exports.userSignup = async (req, res, next) => {
     } else {
       // Continue if there are no errors
       const hashedPassword = await bcrypt.hash(password, 12);
+
+      // Get otp
+      const otp = await generateOTP();
 
       // Create new user object
       const user = new User({
@@ -53,16 +57,16 @@ module.exports.userSignup = async (req, res, next) => {
           registrationNumber,
         },
         password: hashedPassword,
+        otp: otp.otp,
       });
 
       // Send verification mail to user
       await mailer(
         email,
         "Verify you email",
-        "Welcome to Pharmapool. Kindly click the button to verify your account",
+        "Welcome to Pharmapool. Below is the code to activate your account",
         `${firstName} ${lastName}`,
-        `https://pharmapoolng.com/verify/${user._id}`,
-        "verify"
+        otp.code
       );
 
       // Save user in database
@@ -93,7 +97,10 @@ module.exports.userLogin = async (req, res, next) => {
     // Check if user exists
     const user = await userExists("email", email);
 
-    if (!user) error.errorHandler(res, "incorrect email", "email");
+    if (!user) {
+      error.errorHandler(res, "incorrect email", "email");
+      return;
+    }
 
     // Check for password match
     const passwordMatch = await bcrypt.compare(password, user.password);
@@ -109,6 +116,10 @@ module.exports.userLogin = async (req, res, next) => {
     }
     // Continue if there are no errors
 
+    // set loggedIn to true
+    user.loggedIn = true;
+    user.save();
+
     // Create jsonwebtoken
     const token = jwt.sign(
       { user: user, email: user.email },
@@ -123,17 +134,65 @@ module.exports.userLogin = async (req, res, next) => {
   }
 };
 
+/***************
+ * User Logout *
+ ***************/
+module.exports.userLogout = async (req, res, next) => {
+  const userId = req.params._id;
+
+  try {
+    // get and validate user
+    const user = await User.findById(userId);
+    if (!user) {
+      error.errorHandler(res, "user not found", "user");
+      return;
+    }
+
+    // continue if there are no errors
+    user.loggedIn = false;
+
+    // save changes
+    user.save();
+
+    // Create jsonwebtoken
+    const token = jwt.sign(
+      { user: user, email: user.email },
+      process.env.jwtKey,
+      { algorithm: "HS256", expiresIn: process.env.jwtExpirySeconds }
+    );
+
+    // send response to client
+    res
+      .status(200)
+      .json({ success: true, message: "user logged out successfully", token });
+  } catch (err) {
+    error.error(err, next);
+  }
+};
+
 /******************
  * Verify Account *
  ******************/
 module.exports.verifyAccount = async (req, res, next) => {
-  const userId = req.params._id;
+  const userId = req._id,
+    code = req.body.code;
 
   try {
+    // Check for validation errors
+    // const validatorErrors = validationResult(req);
+    // error.validationError(validatorErrors);
+
     // verify user
     const user = await User.findById(userId);
     if (!user) {
       error.errorHandler(res, "invalid user", "user");
+      return;
+    }
+
+    // validate otp
+    const validatedotp = await verifyOTP(res, code);
+    if (!validatedotp) {
+      error.errorHandler(res, "invalid otp", "otp");
       return;
     }
 
@@ -157,6 +216,10 @@ module.exports.passwordReset = async (req, res, next) => {
   const email = req.body.email;
 
   try {
+    // Check for validation errors
+    // const validatorErrors = validationResult(req);
+    // error.validationError(validatorErrors);
+
     if (email === "") {
       error.errorHandler(res, "Invalid Email", "email");
     }
@@ -167,10 +230,6 @@ module.exports.passwordReset = async (req, res, next) => {
       "details resetToken resetExpiration firstName lastName"
     );
 
-    // Check for validation errors
-    const validatorErrors = validationResult(req);
-    error.validationError(validatorErrors, res);
-
     // Check if user is undefined
     if (!user) {
       error.errorHandler(res, "No user found with email", "email");
@@ -178,6 +237,8 @@ module.exports.passwordReset = async (req, res, next) => {
     }
 
     // Continue if there are no errors
+    // generate otp
+    const otp = await generateOTP();
 
     // Generate random reset token
     const resetToken = await crypto.randomBytes(32).toString("hex");
@@ -186,6 +247,7 @@ module.exports.passwordReset = async (req, res, next) => {
     const resetExpiration = Date.now() + 3600000;
 
     // Update found user object
+    user.otp = otp;
     user.resetToken = resetToken;
     user.resetExpiration = resetExpiration;
 
@@ -193,11 +255,9 @@ module.exports.passwordReset = async (req, res, next) => {
     await mailer(
       email,
       "password reset",
-      "Thanks for choosing Pharmapool. Kindly click the button to reset your password",
+      "use this one time passcode below for your password reset",
       `${user.firstName} ${user.lastName}`,
-      "#",
-      "reset",
-      `https://pharmapoolng.com/password-reset/${email}`
+      otp.code
     );
 
     // Save user updates to database
@@ -221,6 +281,10 @@ module.exports.getPasswordToken = async (req, res, next) => {
   const email = req.params.email;
 
   try {
+    // Check for validation errors
+    //const validatorErrors = validationResult(req);
+    //error.validationError(validatorErrors, res);
+
     // Check for matching token on a user
     const user = await User.findOne(
       { "details.email": email },
@@ -264,6 +328,10 @@ module.exports.passwordChange = async (req, res, next) => {
     password = req.body.password;
 
   try {
+    // Check for validation errors
+    //const validatorErrors = validationResult(req);
+    //error.validationError(validatorErrors, res);
+
     // Get user
     const user = await User.findOne({ resetToken }, "password resetToken");
 

@@ -24,12 +24,16 @@ module.exports.createBusiness = async (req, res, next) => {
     manufacturer = req.body.manufacturer,
     locationOfPharmacy = req.body.locationOfPharmacy,
     content = req.body.content,
-    userId = req.params._id,
+    userId = req._id,
     quantity = req.body.quantity,
     deadline = req.body.deadline,
     businessType = req.body.business;
 
   try {
+    // Check for validation errors
+    //const validatorErrors = validationResult(req);
+    //error.validationError(validatorErrors, res);
+
     // validate user
     const user = await User.findById(userId);
     if (!user) {
@@ -72,8 +76,12 @@ module.exports.createBusiness = async (req, res, next) => {
       interestedPartners: [{ user: userId }],
     });
 
+    // push business to user businesses array
+    await user.businesses.push(business._id);
+
     // save demand
     await business.save();
+    await user.save();
 
     // populate product
     const businessMade = await Business.find()
@@ -96,10 +104,14 @@ module.exports.createBusiness = async (req, res, next) => {
  ***************************/
 module.exports.addInterestedPartners = async (req, res, next) => {
   const businessId = req.params._id,
-    userId = req.body.userId,
+    userId = req._id,
     amount = req.body.amount;
 
   try {
+    // Check for validation errors
+    //const validatorErrors = validationResult(req);
+    //error.validationError(validatorErrors, res);
+
     // validate user
     const user = await User.findById(userId);
     if (!user) {
@@ -169,9 +181,13 @@ module.exports.addInterestedPartners = async (req, res, next) => {
  *****************************/
 module.exports.removeInterestedPartner = async (req, res, next) => {
   const businessId = req.params._id,
-    userId = req.body.userId;
+    userId = req._id;
 
   try {
+    // Check for validation errors
+    //const validatorErrors = validationResult(req);
+    //error.validationError(validatorErrors, res);
+
     // validate user
     const user = await User.findById(userId);
     if (!user) {
@@ -216,9 +232,13 @@ module.exports.removeInterestedPartner = async (req, res, next) => {
  ************************/
 module.exports.changeBusinessStatus = async (req, res, next) => {
   const businessId = req.params._id,
-    userId = req.body.userId;
+    userId = req._id;
 
   try {
+    // Check for validation errors
+    //const validatorErrors = validationResult(req);
+    //error.validationError(validatorErrors, res);
+
     // validate demand
     const business = await Business.findById(businessId, "status").populate(
       "creator",
@@ -260,10 +280,14 @@ module.exports.changeBusinessStatus = async (req, res, next) => {
  *******************************/
 module.exports.createJointPurchaseGroup = async (req, res, next) => {
   const businessId = req.params._id,
-    userId = req.body.userId,
+    userId = req._id,
     title = req.body.title;
 
   try {
+    // Check for validation errors
+    //const validatorErrors = validationResult(req);
+    //error.validationError(validatorErrors, res);
+
     // validate user
     const user = await User.findById(userId);
     if (!user) {
@@ -332,13 +356,17 @@ module.exports.createJointPurchaseGroup = async (req, res, next) => {
  * Register Pharmacy *
  *********************/
 module.exports.registerPharmacy = async (req, res, next) => {
-  const userId = req.params._id,
+  const userId = req._id,
     businessName = req.body.businessName,
     location = req.body.location,
     contactNumber = req.body.contactNumber,
     about = req.body.about;
 
   try {
+    // Check for validation errors
+    //const validatorErrors = validationResult(req);
+    //error.validationError(validatorErrors, res);
+
     // validate user
     const user = await User.findById(userId, "pharmacy");
     if (!user) {
@@ -385,9 +413,13 @@ module.exports.updatePharmacy = async (req, res, next) => {
     location = req.body.location,
     contactNumber = req.body.contactNumber,
     about = req.body.about,
-    userId = req.body.userId;
+    userId = req._id;
 
   try {
+    // Check for validation errors
+    //const validatorErrors = validationResult(req);
+    //error.validationError(validatorErrors, res);
+
     // validate user
     const user = await User.findById(userId, "pharmacy");
     if (!user) {
@@ -403,7 +435,7 @@ module.exports.updatePharmacy = async (req, res, next) => {
       const uploadedImage = await uploadImage(res, req.file.path);
       imageUrl = uploadedImage.imageUrl;
       imageId = uploadedImage.imageId;
-      
+
       pharmacy.logo.imageUrl = imageUrl;
       pharmacy.logo.imageId = imageId;
     }
@@ -432,7 +464,13 @@ module.exports.getPharmacy = async (req, res, next) => {
   const pharmacyId = req.params.id;
 
   try {
-    const pharmacy = await Pharmacy.findById(pharmacyId).populate("inventory").populate("allTransactions")
+    // Check for validation errors
+    //const validatorErrors = validationResult(req);
+    //error.validationError(validatorErrors, res);
+
+    const pharmacy = await Pharmacy.findById(pharmacyId)
+      .populate("inventory")
+      .populate("allTransactions");
     if (!pharmacy) {
       error.errorHandler(res, "pharmacy not found", "pharmacy");
     }
@@ -447,9 +485,13 @@ module.exports.getPharmacy = async (req, res, next) => {
  * Get All User Pharmacies *
  ***************************/
 module.exports.getAllUserPharmacies = async (req, res, next) => {
-  const userId = req.params._id;
+  const userId = req._id;
 
   try {
+    // Check for validation errors
+    //const validatorErrors = validationResult(req);
+    //error.validationError(validatorErrors, res);
+
     // validate user
     const user = await User.findById(userId);
     if (!user) {
@@ -470,7 +512,7 @@ module.exports.getAllUserPharmacies = async (req, res, next) => {
  *************************/
 // module.exports.addPharmacyImages = async (req, res, next) => {
 //   const pharmacyId = req.params._id,
-//     userId = req.body.userId,
+//     userId = req._id,
 //     images = req.files;
 
 //   try {
@@ -511,9 +553,13 @@ module.exports.getAllUserPharmacies = async (req, res, next) => {
  *******************/
 module.exports.deletePharmacy = async (req, res, next) => {
   const pharmacyId = req.params._id,
-    userId = req.body.userId;
+    userId = req._id;
 
   try {
+    // Check for validation errors
+    //const validatorErrors = validationResult(req);
+    //error.validationError(validatorErrors, res);
+
     // validate user
     const user = await User.findById(userId, "pharmacy");
     if (!user) {
@@ -570,6 +616,10 @@ module.exports.addNewProduct = async (req, res, next) => {
     remark = "added";
 
   try {
+    // Check for validation errors
+    //const validatorErrors = validationResult(req);
+    //error.validationError(validatorErrors, res);
+
     const transaction = new Transactions({
       product,
       brand,
@@ -625,6 +675,10 @@ module.exports.getSingleProductInventory = async (req, res, next) => {
   const inventoryId = req.params.id;
 
   try {
+    // Check for validation errors
+    //const validatorErrors = validationResult(req);
+    //error.validationError(validatorErrors, res);
+
     // validate inventory
     const inventory = await Inventory.findById(inventoryId);
     if (!inventory) {
@@ -654,6 +708,10 @@ module.exports.addMoreStock = async (req, res, next) => {
     remark = "added";
 
   try {
+    // Check for validation errors
+    //const validatorErrors = validationResult(req);
+    //error.validationError(validatorErrors, res);
+
     // validate product
     const inventory = await Inventory.findById(inventoryId);
     if (!inventory) {
@@ -707,6 +765,10 @@ module.exports.removeStock = async (req, res, next) => {
     quantity = req.body.quantity;
 
   try {
+    // Check for validation errors
+    //const validatorErrors = validationResult(req);
+    //error.validationError(validatorErrors, res);
+
     // validate product
     const inventory = await Inventory.findById(inventoryId);
     if (!inventory) {

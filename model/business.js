@@ -21,7 +21,7 @@ const businessesSchema = new Schema({
       price: { type: String },
     },
   ],
-  status: { type: Boolean, required: true, default: false },
+  status: { type: Boolean, required: true, default: true },
   deadline: { type: String, required: true },
   createdAt: {
     type: Date,

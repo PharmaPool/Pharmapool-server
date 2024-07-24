@@ -5,8 +5,7 @@ const mailer = async (
   subject,
   message,
   username,
-  link,
-  btnText,
+  code,
 ) => {
   const transporter = await nodemailer.createTransport({
     host: "smtp.zoho.com",
@@ -19,7 +18,7 @@ const mailer = async (
   });
 
   const mailOptions = {
-    from: "<info@pharmapoolng.com>",
+    from: "Pharmapool <info@pharmapoolng.com>",
     to: email,
     subject: subject,
     html: `<!DOCTYPE html>
@@ -68,9 +67,7 @@ const mailer = async (
 						<div style="padding: 1em 0 1em 0;"></div>
 						<h3 style="font-weight: bold; color: black;">Dear ${username},</h3>
 						<h3 style="color: black;">${message}</h3>
-						<button style="border: none; background-color: white; margin-top: 1rem;">
-              <a href=${link} style="background-color: #004d40; color: #fff; border: none; padding: 1rem; border-radius: 5px;cursor: pointer; font-size: larger; font-weight: bold; text-decoration: none;">${btnText}</a>
-            </button>
+              <h2 style="background-color: #004d40; color: #fff; border: none; padding: 1rem; font-size: x-large; font-weight: bolder;">${code}</h2>
             			</div>
             		</td>
             	</tr>

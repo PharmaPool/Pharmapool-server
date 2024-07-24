@@ -46,7 +46,7 @@ module.exports.postComment = async (req, res, next) => {
   const postId = req.params.postId,
     content = req.body.content,
     image = req.file,
-    userId = req.body.userId;
+    userId = req._id;
 
   try {
     const post = await getPost(postId);
@@ -135,7 +135,7 @@ module.exports.postComment = async (req, res, next) => {
 module.exports.deleteComment = async (req, res, next) => {
   const commentId = req.body.commentId,
     postId = req.params.postId;
-  const userId = req.body.userId;
+  const userId = req._id;
 
   try {
     // Get main post that has the comment
@@ -188,7 +188,7 @@ module.exports.editComment = async (req, res, next) => {
   const postId = req.params.postId,
     content = req.body.content,
     commentId = req.body.commentId,
-    userId = req.body.userId;
+    userId = req._id;
 
   try {
     // Get Post
@@ -242,14 +242,14 @@ module.exports.editComment = async (req, res, next) => {
  **********************/
 module.exports.addLikeToPost = async (req, res, next) => {
   const postId = req.params.postId,
-    userId = req.body.userId;
+    userId = req._id;
 
   try {
     const post = await Post.findById(postId)
       .populate("likes", "firstName lastName fullName profileImage")
       .populate("comments");
 
-    const user = await User.findById(userId, "profileImage");
+    const user = await User.findById(userId);
 
     // Check if user exists
     // const alreadyLiked = post.likes.filter(
@@ -304,7 +304,7 @@ module.exports.addLikeToPost = async (req, res, next) => {
  *************************/
 module.exports.removeLikeFromPost = async (req, res, next) => {
   const postId = req.params.postId,
-    userId = req.body.userId;
+    userId = req._id;
 
   try {
     const post = await getPost(postId);
@@ -373,7 +373,7 @@ module.exports.removeLikeFromPost = async (req, res, next) => {
 module.exports.addCommentLike = async (req, res, next) => {
   const postId = req.params.postId,
     commentId = req.body.commentId,
-    userId = req.body.userId;
+    userId = req._id;
 
   try {
     const post = await Post.findById(postId)
@@ -400,7 +400,7 @@ module.exports.addCommentLike = async (req, res, next) => {
     // Continue if there are no errors
 
     // Unshift current into comments like array
-    await post.comments[commentIndex].likes.unshift(req.body.userId);
+    await post.comments[commentIndex].likes.unshift(req._id);
 
     await post.save();
 
@@ -449,7 +449,7 @@ module.exports.addCommentLike = async (req, res, next) => {
 module.exports.removeCommentLike = async (req, res, next) => {
   const postId = req.params.postId,
     commentId = req.body.commentId,
-    userId = req.body.userId;
+    userId = req._id;
 
   try {
     const post = await Post.findById(postId);
@@ -525,7 +525,7 @@ module.exports.addReply = async (req, res, next) => {
     commentId = req.body.commentId,
     content = req.body.content,
     image = req.file,
-    userId = req.body.userId;
+    userId = req._id;
 
   try {
     const user = await User.findById(userId, "profileImage");
@@ -615,7 +615,7 @@ module.exports.removeReply = async (req, res, next) => {
   const postId = req.params.postId,
     commentId = req.body.commentId,
     replyId = req.body.replyId,
-    userId = req.body.userId;
+    userId = req._id;
 
   try {
     const post = await getPost(postId, "comments");
@@ -674,7 +674,7 @@ module.exports.addLikeToReply = async (req, res, next) => {
   const postId = req.params.postId,
     commentId = req.body.commentId,
     replyId = req.body.replyId,
-    userId = req.body.userId;
+    userId = req._id;
 
   try {
     const post = await Post.findById(postId, "comments")
@@ -763,7 +763,7 @@ module.exports.removeLikeFromReply = async (req, res, next) => {
   const postId = req.params.postId,
     commentId = req.body.commentId,
     replyId = req.body.replyId,
-    userId = req.body.userId;
+    userId = req._id;
 
   try {
     // get post
@@ -849,7 +849,7 @@ module.exports.updateReply = async (req, res, next) => {
     commentId = req.body.commentId,
     replyId = req.body.replyId,
     content = req.body.content,
-    userId = req.body.userId;
+    userId = req._id;
 
   try {
     // get and validate post
@@ -893,7 +893,7 @@ module.exports.updateReply = async (req, res, next) => {
  * Get Notifications *
  *********************/
 module.exports.getNotifications = async (req, res, next) => {
-  const userId = req.params._id;
+  const userId = req._id;
 
   try {
     const user = await User.findById(userId, "notifications");
@@ -934,7 +934,7 @@ module.exports.getNotifications = async (req, res, next) => {
  * Clear Notifications *
  ***********************/
 module.exports.clearNotifications = async (req, res, next) => {
-  const userId = req.params._id,
+  const userId = req._id,
     type = req.body.type;
 
   try {

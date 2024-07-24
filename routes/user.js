@@ -23,11 +23,11 @@ router.delete("/remove-friend", userController.removeFriend);
 
 // Message Routes
 router.post("/chat", userController.startChat)
-router.post(
-  "/message",
-  [body("message", "Message cant be empty").not().isEmpty()],
-  userController.sendMessage
-);
+// router.post(
+//   "/message",
+//   [body("message", "Message cant be empty").not().isEmpty()],
+//   userController.sendMessage
+// );
 router.delete("/message", userController.clearMessageCount);
 router.post("/chatroom/add", userController.addFriendToChatroom);
 router.delete("/chatroom/remove", userController.removeFriendFromChatroom);
@@ -37,16 +37,16 @@ router.post("/chatroom/create", userController.createChatroom);
 router.get("/messages/:_id", userController.getMessages);
 router.post("/singlechat/:chatId", userController.getSingleChat)
 router.post("/singlechatroom/:chatId", userController.getSingleChatroom)
-router.post(
-  "/chatroom/:_id",
-  [body("message", "message can't be empty").not().isEmpty()],
-  userController.messageChatroom
-);
+// router.post(
+//   "/chatroom/:_id",
+//   [body("message", "message can't be empty").not().isEmpty()],
+//   userController.messageChatroom
+// );
 router.delete("/messages/count/:_id", userController.clearMessageCount)
 
 router.get("/profile/:_id", userController.getUserProfile);
 router.get("/friends/:_id", userController.getUserFriends)
 
-router.post("/search", userController.searchUser);
+router.post("/search/:name", userController.searchUser);
 
 module.exports = router;
