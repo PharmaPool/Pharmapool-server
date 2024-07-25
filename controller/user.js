@@ -845,7 +845,7 @@ module.exports.createChatroom = async (req, res, next) => {
  * Get User Profile *
  ********************/
 module.exports.getUserProfile = async (req, res, next) => {
-  const userId = req._id;
+  const userId = req.params._id;
 
   try {
     // Get and validate user

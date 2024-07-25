@@ -1,5 +1,8 @@
 const jwt = require("jsonwebtoken");
 const OTP = require("../model/otp");
+const dotenv = require("dotenv");
+
+dotenv.config();
 
 module.exports = {
   generateOTP: async () => {
@@ -38,12 +41,13 @@ module.exports = {
     );
     return code;
   },
-  verifyOTP: async (res, code) => {
+  verifyOTP: async (code) => {
     const otp = await OTP.findOne({ code });
-    const authorizedotp = await jwt.verify(otp.token, env.process.jwtKey);
+    const authorizedotp = await jwt.verify(otp.token, process.env.jwtKey);
     if (!authorizedotp) {
       return false;
     }
-    return { success: true };
+    await OTP.findOneAndDelete({ code });
+    return true;
   },
 };

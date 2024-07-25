@@ -1,7 +1,7 @@
 const dotenv = require("dotenv");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const { validationResult } = require("express-validator");
+// const { validationResult } = require("express-validator");
 const crypto = require("crypto");
 
 dotenv.config();
@@ -70,12 +70,12 @@ module.exports.userSignup = async (req, res, next) => {
       );
 
       // Save user in database
-      const newUser = await user.save();
+      await user.save();
 
       // Send response back to client
       res
         .status(200)
-        .json({ message: "Sign up successful", type: "user", newUser });
+        .json({ message: "Sign up successful", type: "user", user });
     }
   } catch (err) {
     error.error(err, next);
@@ -174,14 +174,11 @@ module.exports.userLogout = async (req, res, next) => {
  * Verify Account *
  ******************/
 module.exports.verifyAccount = async (req, res, next) => {
-  const userId = req._id,
+  const userId = req.params._id,
     code = req.body.code;
 
   try {
     // Check for validation errors
-    // const validatorErrors = validationResult(req);
-    // error.validationError(validatorErrors);
-
     // verify user
     const user = await User.findById(userId);
     if (!user) {
@@ -190,7 +187,7 @@ module.exports.verifyAccount = async (req, res, next) => {
     }
 
     // validate otp
-    const validatedotp = await verifyOTP(res, code);
+    const validatedotp = await verifyOTP(code);
     if (!validatedotp) {
       error.errorHandler(res, "invalid otp", "otp");
       return;

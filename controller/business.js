@@ -835,8 +835,7 @@ module.exports.getSingleBusiness = async (req, res, next) => {
     const business = await Business.findById(businessId)
       .populate("creator", "firstName lastName fullName profileImage")
       .populate(
-        "interestedPartners.user",
-        "firstName lastName fullName profileImage"
+        "interestedPartners.user"
       )
       .populate("product");
     if (!business) {

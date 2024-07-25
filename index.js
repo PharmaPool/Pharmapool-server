@@ -5,7 +5,7 @@ const bodyParser = require("body-parser");
 const compression = require("compression");
 const isAuth = require("./util/is-auth/isAuth");
 const cors = require("cors");
-const path = require("path")
+const path = require("path");
 
 // Set up dotenv
 dotenv.config();
@@ -23,7 +23,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: "https://pharmapoolng.com",
   })
 );
 
