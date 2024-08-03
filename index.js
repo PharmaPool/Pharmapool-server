@@ -18,12 +18,13 @@ const userRoutes = require("./routes/user");
 const feedRoutes = require("./routes/feed");
 const profileRoutes = require("./routes/profile");
 const businessRoutes = require("./routes/business");
+const walletRoutes = require("./routes/wallet");
 
 const app = express();
 
 app.use(
   cors({
-    origin: "https://pharmapoolng.com",
+    origin: "*",
   })
 );
 
@@ -54,6 +55,7 @@ app.use((req, res, next) => {
 
 // Auth route which bypasses auth check
 app.use("/api/auth", authRoutes);
+app.use("/api/wallet", walletRoutes);
 
 // Authentication check
 app.use(isAuth);

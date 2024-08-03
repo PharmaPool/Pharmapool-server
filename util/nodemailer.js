@@ -1,19 +1,18 @@
 const nodemailer = require("nodemailer");
+const dotenv = require("dotenv");
+dotenv.config();
 
-const mailer = async (
-  email,
-  subject,
-  message,
-  username,
-  code,
-) => {
+const mailer = async (email, subject, message, username, code) => {
+  const mail = process.env.EMAIL;
+  const pass = process.env.PASS;
+
   const transporter = await nodemailer.createTransport({
     host: "smtp.zoho.com",
-    secure: true,
     port: 465,
+    secure: true,
     auth: {
-      user: process.env.EMAIL,
-      pass: process.env.PASS,
+      user: mail,
+      pass: pass,
     },
   });
 
@@ -97,10 +96,10 @@ const mailer = async (
                     <tr>
                       <td style="text-align: center; padding-left: 10px; list-style-type: none; ">
                       	<h3 class="heading">Useful Links</h3>
-							<p style="margin-bottom: 0rem; list-style-type: none;"><a href="https://pharmapoolng.com/" style="text-decoration: none; color: black;">Home</a></p>
-							<p style="margin-bottom: 0rem; list-style-type: none;"><a href="https://pharmapoolng.com/about" style="text-decoration: none; color: black;">About</a></p>
-							<p style="margin-bottom: 0rem; list-style-type: none;"><a href="https://pharmapoolng.com/business" style="text-decoration: none; color: black;">Business</a></p>
-							<p style="margin-bottom: 0rem; list-style-type: none;"><a href="https://pharmapoolng.com/contact" style="text-decoration: none; color: black;">Contact us</a></p>
+							<p style="margin-bottom: 0rem; list-style-type: none;"><a href="http://localhost:3000/" style="text-decoration: none; color: black;">Home</a></p>
+							<p style="margin-bottom: 0rem; list-style-type: none;"><a href="http://localhost:3000/about" style="text-decoration: none; color: black;">About</a></p>
+							<p style="margin-bottom: 0rem; list-style-type: none;"><a href="http://localhost:3000/business" style="text-decoration: none; color: black;">Business</a></p>
+							<p style="margin-bottom: 0rem; list-style-type: none;"><a href="http://localhost:3000/contact" style="text-decoration: none; color: black;">Contact us</a></p>
                       </td>
                     </tr>
                   </table>

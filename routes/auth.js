@@ -8,28 +8,11 @@ const businessController = require("../controller/business")
 router.get("/", businessController.getAllBusinesses)
 router.post(
   "/signup",
-  [
-    body("firstName", "first name should not be empty").not().isEmpty(),
-    body("lastName", "last name should not be empty").not().isEmpty(),
-    body("email", "email is invalid").isEmail().not().isEmpty(),
-    body("password", "password should not be less than 8 characters long")
-      .isLength({ min: 8 })
-      .not()
-      .isEmpty(),
-    body("phoneNumber", "number should not be empty").not().isEmpty(),
-  ],
   authController.userSignup
 );
 router.post("/verify/:_id", authController.verifyAccount);
 router.post(
   "/signin",
-  [
-    body("email", "email is invalid").isEmail().not().isEmpty(),
-    body("password", "password should not be less than 8 characters long")
-      .isLength({ min: 8 })
-      .not()
-      .isEmpty(),
-  ],
   authController.userLogin
 );
 router.patch("/signout/:_id", authController.userLogout)

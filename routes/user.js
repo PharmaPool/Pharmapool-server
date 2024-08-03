@@ -45,7 +45,7 @@ router.post("/singlechatroom/:chatId", userController.getSingleChatroom)
 router.delete("/messages/count/:_id", userController.clearMessageCount)
 
 router.get("/profile/:_id", userController.getUserProfile);
-router.get("/friends/:_id", userController.getUserFriends)
+router.get("/friends", userController.getUserFriends)
 
 router.post("/search/:name", userController.searchUser);
 

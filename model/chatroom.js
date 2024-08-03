@@ -38,7 +38,7 @@ const chatroomSchema = new Schema({
       },
     },
   ],
-  wallet: [{ type: Schema.Types.ObjectId, required: true, default: "" }],
+  wallet: { type: Schema.Types.ObjectId, required: true, default: "" },
 });
 
 module.exports = mongoose.model("ChatRoom", chatroomSchema);
