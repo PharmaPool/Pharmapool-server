@@ -76,9 +76,6 @@ module.exports.createBusiness = async (req, res, next) => {
       interestedPartners: [{ user: userId }],
     });
 
-    // push business to user businesses array
-    await user.businesses.push(business._id);
-
     // save demand
     await business.save();
     await user.save();

@@ -9,7 +9,7 @@ const postSchema = new Schema(
         type: String,
       },
       imageId: {
-        type: Schema.Types.ObjectId,
+        type: String,
       },
     },
     edited: Date,
@@ -38,7 +38,7 @@ const postSchema = new Schema(
             // required: true,
           },
           imageId: {
-            type: Schema.Types.ObjectId,
+            type: String,
             // required: true,
           },
         },
@@ -67,7 +67,7 @@ const postSchema = new Schema(
                 // required: true,
               },
               imageId: {
-                type: Schema.Types.ObjectId,
+                type: String,
                 // required: true,
               },
             },
