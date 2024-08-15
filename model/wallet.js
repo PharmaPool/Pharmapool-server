@@ -4,9 +4,16 @@ const Schema = mongoose.Schema;
 const walletSchema = new Schema({
   walletAddress: { type: String, required: true },
   createdAt: { type: Date, required: true, default: Date.now() },
-  referenceCode: { type: String, required: true },
-  chatId: { type: Schema.Types.ObjectId, ref: "Chat" },
-  chatroomId: { type: Schema.Types.ObjectId, ref: "ChatRoom" },
+  referenceCodes: [
+    {
+      user: { type: Schema.Types.ObjectId, ref: "User" },
+      reference: { type: String },
+      paymentStatus: { type: Boolean, default: false },
+    },
+  ],
+  walletId: { type: Number },
+  balance: { type: Number, default: 0 },
+  amount: { type: Number },
 });
 
 module.exports = mongoose.model("Wallet", walletSchema);

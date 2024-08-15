@@ -176,6 +176,7 @@ const userSchema = new Schema(
         },
       ],
     },
+    access_code: { type: String },
     resetToken: String,
     resetExpiration: Date,
     otp: { type: Schema.Types.ObjectId, ref: "OTP" },

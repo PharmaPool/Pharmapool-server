@@ -29,7 +29,7 @@ const chatSchema = new Schema({
       },
     },
   ],
-  wallet: { type: Schema.Types.ObjectId, required: true, default: "" },
+  wallet: { type: Schema.Types.ObjectId, ref: "Wallet" },
 });
 
 module.exports = mongoose.model("Chat", chatSchema);

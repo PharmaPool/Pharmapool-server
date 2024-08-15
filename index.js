@@ -55,12 +55,12 @@ app.use((req, res, next) => {
 
 // Auth route which bypasses auth check
 app.use("/api/auth", authRoutes);
-app.use("/api/wallet", walletRoutes);
 
 // Authentication check
 app.use(isAuth);
 
 // Endpoints
+app.use("/api/wallet", walletRoutes);
 app.use("/api/feed", feedRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/profile", profileRoutes);
@@ -72,16 +72,6 @@ app.use((req, res, next) => {
   }
   return next();
 });
-
-// Error handler
-// app.use((err, req, res, next) => {
-//   const status = err.statusCode,
-//     message = err.message,
-//     type = err.type || "";
-
-//   res.status(status).json({ message, status, type });
-//   next()
-// });
 
 mongoose
   .connect(process.env.MONGO_URL)

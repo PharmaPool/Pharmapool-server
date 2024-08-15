@@ -409,7 +409,7 @@ module.exports.acceptRequest = async (req, res, next) => {
     });
 
     // Send response to client
-    res.status(200).json({ message: "friend request accepted" });
+    res.status(200).json({ success: true, message: "friend request accepted" });
   } catch (err) {
     error.error(err, next);
   }
