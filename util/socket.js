@@ -2,7 +2,7 @@ module.exports = {
   init: (httpServer) => {
     const io = require("socket.io")(httpServer, {
       cors: {
-        origin: "https://www.pharmapoolng.com",
+        origin: "*",
       },
     });
 
