@@ -11,8 +11,12 @@ router.post(
   walletController.acceptWalletPayment
 );
 router.post(
-  "/payment/verify/:walletAddress",
-  walletController.verifyWalletPayment
+  "/payment/verify/chat/:walletAddress",
+  walletController.verifyChatWalletPayment
+);
+router.post(
+  "/payment/verify/chatroom/:walletAddress",
+  walletController.verifyChatroomWalletPayment
 );
 
 module.exports = router;

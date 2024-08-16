@@ -507,8 +507,18 @@ module.exports.startChat = async (req, res, next) => {
 
   try {
     const user = await User.findById(userId);
+    if (!user) {
+      error.errorHandler(res, "invalid user", "user");
+      return;
+    }
+
     const friend = await User.findById(friendId);
-    // Check if you already have a chat going on with just the user
+    if (!friend) {
+      error.errorHandler(res, "invalid user", "friend");
+      return;
+    }
+
+    // Check if you already have a chat going on with the user
     const existingChat = await Chat.findOne({
       $and: [
         { users: { $elemMatch: { userId: friendId } } },
@@ -527,6 +537,8 @@ module.exports.startChat = async (req, res, next) => {
       const chat = new Chat({
         users: [{ userId: friendId }, { userId: userId }],
       });
+
+      console.log(userId, user);
 
       await user.messages.singlechatcontent.unshift(chat);
       await friend.messages.singlechatcontent.unshift(chat);

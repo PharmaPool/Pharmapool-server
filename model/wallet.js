@@ -14,6 +14,7 @@ const walletSchema = new Schema({
   walletId: { type: Number },
   balance: { type: Number, default: 0 },
   amount: { type: Number },
+  partners: { type: Number, default: 1 },
 });
 
 module.exports = mongoose.model("Wallet", walletSchema);

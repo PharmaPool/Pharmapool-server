@@ -12,8 +12,8 @@ const https = require("https");
 // create chat wallet
 module.exports.createChatWallet = async (req, res, next) => {
   const userId = req._id,
-    chatId = req.body.chatId,
-    amount = req.body.amount;
+    chatId = req.params.chatId,
+    amount = Number(req.body.amount);
 
   try {
     // validate user
@@ -31,7 +31,7 @@ module.exports.createChatWallet = async (req, res, next) => {
     }
 
     // create subaccount
-    const business_name = `${user.details.email} business`;
+    const business_name = `${user.firstName} business`;
     const subaccount = await Paystack.subaccount.create({
       business_name,
       settlement_bank: process.env.SETTLEMENT_BANK,
@@ -50,13 +50,24 @@ module.exports.createChatWallet = async (req, res, next) => {
     chat.wallet = wallet._id;
     await chat.save();
 
-    const updatedChat = await Chat.findById(chatId).populate("wallet");
+    const updatedChat = await Chat.findById(chatId)
+      .populate("wallet")
+      .populate("users", "firstName lastName fullName profileImage");
+
+    const updatedWallet = await Wallet.findById(wallet._id).populate({
+      path: "referenceCodes",
+      populate: {
+        path: "user",
+        select: "firstName lastName fullName profileImage",
+      },
+    });
 
     // send response to client
     res.status(200).json({
       success: true,
       message: "wallet created successfully",
       chat: updatedChat,
+      wallet: updatedWallet,
     });
   } catch (err) {
     error.error(err, next);
@@ -67,6 +78,7 @@ module.exports.createChatWallet = async (req, res, next) => {
 module.exports.createChatRoomWallet = async (req, res, next) => {
   const chatroomId = req.params.chatroomId,
     userId = req._id,
+    partners = Number(req.body.partners),
     amount = Number(req.body.amount);
 
   try {
@@ -77,10 +89,10 @@ module.exports.createChatRoomWallet = async (req, res, next) => {
       return;
     }
 
-    // validate chat
+    // validate chatroom
     const chatroom = await ChatRoom.findById(chatroomId);
     if (!chatroom) {
-      error.errorHandler(res, "chat not found", "chat");
+      error.errorHandler(res, "chatroom not found", "chat");
       return;
     }
 
@@ -97,6 +109,7 @@ module.exports.createChatRoomWallet = async (req, res, next) => {
       walletAddress: subaccount.data.subaccount_code,
       walletId: subaccount.data.id,
       amount,
+      partners,
     });
     await wallet.save();
 
@@ -129,7 +142,7 @@ module.exports.createChatRoomWallet = async (req, res, next) => {
 
 // accept wallet payment
 module.exports.acceptWalletPayment = async (req, res, next) => {
-  const amount = req.body.amount,
+  const amount = Number(req.body.amount).toFixed(2),
     subaccount = req.params.walletAddress,
     userId = req._id;
   let data = "",
@@ -189,7 +202,7 @@ module.exports.acceptWalletPayment = async (req, res, next) => {
             user: userId,
             reference,
           });
-          wallet.balance += amount;
+          wallet.balance += Number(amount);
           await wallet.save();
 
           // update user
@@ -210,8 +223,63 @@ module.exports.acceptWalletPayment = async (req, res, next) => {
   }
 };
 
-// verify wallet payment
-module.exports.verifyWalletPayment = async (req, res, next) => {
+// verify chat wallet payment
+module.exports.verifyChatWalletPayment = async (req, res, next) => {
+  const walletAddress = req.params.walletAddress,
+    reference = req.body.reference,
+    chatId = req.body.chatId,
+    userId = req._id;
+
+  try {
+    // validate user
+    const user = await getUser(userId);
+    if (!user) {
+      error.errorHandler(res, "invalid user", "user");
+      return;
+    }
+
+    // validate chatroom
+    const chat = await Chat.findById(chatId);
+    if (!chat) {
+      error.errorHandler(res, "invalid chat", "chat");
+      return;
+    }
+
+    // get wallet
+    const wallet = await Wallet.findOne({ walletAddress }).populate({
+      path: "referenceCodes",
+      populate: {
+        path: "user",
+        select: "firstName lastName fullName profileImage",
+      },
+    });
+    if (!wallet) {
+      error.errorHandler(res, "invalid wallet", "wallet");
+      return;
+    }
+
+    // verify transaction
+    Paystack.transaction
+      .verify(reference)
+      .then(async (transaction) => {
+        if (transaction.data.status === "success") {
+          await wallet.referenceCodes.map((partner) => {
+            if (partner.user._id.toString() === userId) {
+              partner.paymentStatus = true;
+            }
+          });
+          await wallet.save();
+          res.status(200).json({ wallet, chat });
+        }
+      })
+      .catch((err) => console.log(err));
+  } catch (err) {
+    error.error(err, next);
+  }
+};
+
+// verify chatroom wallet payment
+module.exports.verifyChatroomWalletPayment = async (req, res, next) => {
   const walletAddress = req.params.walletAddress,
     reference = req.body.reference,
     chatroomId = req.body.chatroomId,
@@ -279,18 +347,31 @@ module.exports.getChatWalletDetails = async (req, res, next) => {
     }
 
     // validate chat
-    const chat = await Chat.findById(chatId).populate("wallet");
+    const chat = await Chat.findById(chatId);
     if (!chat) {
       error.errorHandler(res, "invalid chat", "chat");
       return;
     }
 
     // get and validate wallet
-    const wallet = await Paystack.subaccount.get(chat.wallet.walletId);
+    const wallet = await Wallet.findById(chat.wallet).populate({
+      path: "referenceCodes",
+      populate: {
+        path: "user",
+        select: "firstName lastName fullName profileImage",
+      },
+    });
+    if (!wallet) {
+      error.errorHandler(res, "invalid wallet", "wallet");
+      return;
+    }
 
-    res
-      .status(200)
-      .json({ success: true, message: "wallet fetched successfully", wallet });
+    res.status(200).json({
+      success: true,
+      message: "wallet fetched successfully",
+      wallet,
+      chat,
+    });
   } catch (err) {
     error.error(err, next);
   }
