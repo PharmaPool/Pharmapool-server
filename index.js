@@ -22,7 +22,11 @@ const walletRoutes = require("./routes/wallet");
 
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: "*",
+  })
+);
 
 app.use(compression());
 
