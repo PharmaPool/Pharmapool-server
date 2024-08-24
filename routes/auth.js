@@ -3,9 +3,8 @@ const router = express.Router();
 const { body } = require("express-validator");
 
 const authController = require("../controller/auth");
-const businessController = require("../controller/business")
 
-router.get("/", businessController.getAllBusinesses)
+router.get("/", authController.getAllBusinesses)
 router.post(
   "/signup",
   authController.userSignup

@@ -18,5 +18,13 @@ router.post(
   "/payment/verify/chatroom/:walletAddress",
   walletController.verifyChatroomWalletPayment
 );
+router.post(
+  "/receipt/acknowledge/chat",
+  walletController.acknowledgeChatBusiness
+);
+router.post(
+  "/receipt/acknowledge/chatroom",
+  walletController.acknowledgeChatroomBusiness
+);
 
 module.exports = router;

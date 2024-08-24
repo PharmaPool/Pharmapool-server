@@ -6,6 +6,7 @@ const crypto = require("crypto");
 
 dotenv.config();
 
+const Business = require("../model/business");
 const User = require("../model/user");
 
 const error = require("../util/error-handling/errorHandler");
@@ -357,6 +358,33 @@ module.exports.passwordChange = async (req, res, next) => {
     res
       .status(201)
       .json({ message: "password successfully changed", type: "password" });
+  } catch (err) {
+    error.error(err, next);
+  }
+};
+
+/**********************
+ * Get All Businesses *
+ **********************/
+module.exports.getAllBusinesses = async (req, res, next) => {
+  try {
+    // continue if there are no errors
+
+    // get all demand
+    const business = await Business.find()
+      .populate("creator", "firstName lastName profileImage")
+      .populate("product")
+      .populate("interestedPartners");
+
+    const businesses = [...business].reverse();
+
+    res
+      .status(200)
+      .json({
+        message: "all businesses fetched successfully",
+        businesses,
+        loggedIn: false,
+      });
   } catch (err) {
     error.error(err, next);
   }

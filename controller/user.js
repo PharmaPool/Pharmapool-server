@@ -588,10 +588,10 @@ module.exports.addFriendToChatroom = async (req, res, next) => {
 
     const user = await getUser(userId);
 
-    if (!user.friends.includes(friendId)) {
-      error.errorHandler(res, "friend not found", "friend");
-      return;
-    }
+    // if (!user.friends.includes(friendId)) {
+    //   error.errorHandler(res, "friend not found", "friend");
+    //   return;
+    // }
 
     // Check if friend isn't already in the chat
     if (chat.users.find((user) => user.toString() === friendId.toString())) {
@@ -1072,6 +1072,7 @@ module.exports.getFriendRequests = async (req, res, next) => {
 
   try {
     const user = await User.findById(userId)
+      .populate("friends", "firstName lastName fullName profileImage")
       .populate(
         "requests.content.user",
         "firstName lastName fullName profileImage"
@@ -1084,7 +1085,7 @@ module.exports.getFriendRequests = async (req, res, next) => {
     // Check if user is undefined
     if (!user) error.errorHandler(res, "user not found", "user");
 
-    res.status(200).json({ request: user.requests });
+    res.status(200).json({ request: user.requests, user });
   } catch (err) {
     error.error(err, next);
   }

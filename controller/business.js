@@ -702,7 +702,8 @@ module.exports.addMoreStock = async (req, res, next) => {
     dateIn = req.body.dateIn,
     quantity = req.body.quantity,
     transactionDate = Date.now(),
-    remark = "added";
+    remark = "added",
+    pharmacyId = req.body.pharmacyId;
 
   try {
     // Check for validation errors
@@ -718,6 +719,7 @@ module.exports.addMoreStock = async (req, res, next) => {
 
     // continue if no errors
     const transaction = new Transactions({
+      product: inventory.product,
       brand,
       strength,
       manufacturer,
@@ -740,8 +742,13 @@ module.exports.addMoreStock = async (req, res, next) => {
     });
 
     inventory.total += Number(quantity);
+    await inventory.transactions.push(newTransaction._id);
 
     const addedInventory = await inventory.save();
+
+    const pharmacy = await Pharmacy.findById(pharmacyId).populate("inventory");
+    await pharmacy.allTransactions.push(newTransaction._id);
+    await pharmacy.save();
 
     io.getIO().emit("inventory", {
       action: "stock added successfully",
@@ -759,7 +766,8 @@ module.exports.addMoreStock = async (req, res, next) => {
  *******************************/
 module.exports.removeStock = async (req, res, next) => {
   const inventoryId = req.params.inventoryId,
-    quantity = req.body.quantity;
+    quantity = req.body.quantity,
+    pharmacyId = req.body.pharmacyId;
 
   try {
     // Check for validation errors
@@ -773,19 +781,29 @@ module.exports.removeStock = async (req, res, next) => {
       return;
     }
 
-    // continue if no errors
-    // const invent = await inventory.inventory.find(
-    //   (invent) => invent._id.toString() === inventId.toString()
-    // );
+    const newInventory = inventory.inventory[0];
 
-    // if (invent.quantity < quantity) {
-    //   error.errorHandler(res, "quantity to large for category", "inventory");
-    //   return;
-    // }
-    // invent.quantity -= quantity;
+    // continue if no errors
+    const transaction = new Transactions({
+      product: inventory.product,
+      brand: inventory.product,
+      strength: newInventory.strength,
+      manufacturer: newInventory.manufacturer,
+      dateIn: newInventory.dateIn,
+      expiryDate: newInventory.expiryDate,
+      quantity,
+      remark: "sold",
+    });
+    const newTransaction = await transaction.save();
+
     inventory.total -= Number(quantity);
+    await inventory.transactions.push(newTransaction._id);
 
     const addedInventory = await inventory.save();
+
+    const pharmacy = await Pharmacy.findById(pharmacyId).populate("inventory");
+    await pharmacy.allTransactions.push(newTransaction._id);
+    await pharmacy.save();
 
     io.getIO().emit("inventory", {
       action: "stock added successfully",
@@ -815,7 +833,11 @@ module.exports.getAllBusinesses = async (req, res, next) => {
 
     res
       .status(200)
-      .json({ message: "all businesses fetched successfully", businesses });
+      .json({
+        message: "all businesses fetched successfully",
+        businesses,
+        loggedIn: true,
+      });
   } catch (err) {
     error.error(err, next);
   }
@@ -831,9 +853,7 @@ module.exports.getSingleBusiness = async (req, res, next) => {
     // get and validate business
     const business = await Business.findById(businessId)
       .populate("creator", "firstName lastName fullName profileImage")
-      .populate(
-        "interestedPartners.user"
-      )
+      .populate("interestedPartners.user")
       .populate("product");
     if (!business) {
       error.errorHandler(res, "business not found", "business");
