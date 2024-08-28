@@ -545,7 +545,10 @@ module.exports.getPharmacies = async (req, res, next) => {
   }
 };
 
-module.exports.getPharmacy = async (req, res, next) => {};
+// get single pharmacy
+module.exports.getPharmacy = async (req, res, next) => {
+  
+};
 
 module.exports.deletePharmacy = async (req, res, next) => {};
 

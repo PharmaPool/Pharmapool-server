@@ -79,8 +79,9 @@ module.exports.createChatWallet = async (req, res, next) => {
 module.exports.createChatRoomWallet = async (req, res, next) => {
   const chatroomId = req.params.chatroomId,
     userId = req._id,
-    partners = Number(req.body.partners),
-    amount = Number(req.body.amount);
+    amount = Number(req.body.amount),
+    quantity = req.body.quantity,
+    unitPrice = req.body.unitPrice;
 
   try {
     // validate user
@@ -110,7 +111,8 @@ module.exports.createChatRoomWallet = async (req, res, next) => {
       walletAddress: subaccount.data.subaccount_code,
       walletId: subaccount.data.id,
       amount,
-      partners,
+      quantity,
+      unitPrice,
     });
     wallet.supplier.user = userId;
     await wallet.save();
@@ -154,7 +156,8 @@ module.exports.createChatRoomWallet = async (req, res, next) => {
 module.exports.acceptWalletPayment = async (req, res, next) => {
   const amount = Math.round(Number(req.body.amount)) * 100,
     subaccount = req.params.walletAddress,
-    userId = req._id;
+    userId = req._id,
+    quantity = req.body.quantity;
   let data = "",
     result;
 
@@ -167,15 +170,21 @@ module.exports.acceptWalletPayment = async (req, res, next) => {
     }
 
     // get and validate wallet
-    const wallet = await Wallet.findOne({ walletAddress: subaccount }).populate(
-      {
+    const wallet = await Wallet.findOne({ walletAddress: subaccount })
+      .populate({
         path: "referenceCodes",
         populate: {
           path: "user",
           select: "firstName lastName fullName profileImage",
         },
-      }
-    );
+      })
+      .populate({
+        path: "supplier",
+        populate: {
+          path: "user",
+          select: "firstName lastName fullName profileImage",
+        },
+      });
     if (!wallet) {
       error.errorHandler(res, "wallet not found", "wallet");
       return;
@@ -211,6 +220,7 @@ module.exports.acceptWalletPayment = async (req, res, next) => {
           await wallet.referenceCodes.push({
             user: userId,
             reference,
+            quantity,
           });
           await wallet.save();
 
@@ -294,10 +304,7 @@ module.exports.verifyChatWalletPayment = async (req, res, next) => {
           const paidPartners = await wallet.referenceCodes.filter(
             (partner) => partner.paymentStatus === true
           );
-          if (
-            paidPartners.length >= wallet.partners &&
-            wallet.balance >= wallet.amount
-          ) {
+          if (wallet.balance >= wallet.amount) {
             wallet.paymentComplete = true;
           }
           await wallet.save();
@@ -421,7 +428,13 @@ module.exports.verifyChatroomWalletPayment = async (req, res, next) => {
                 select: "firstName lastName fullName profileImage",
               },
             })
-            .populate("supplier");
+            .populate({
+              path: "supplier",
+              populate: {
+                path: "user",
+                select: "firstName lastName fullName profileImage",
+              },
+            });
           res.status(200).json({ wallet: walet, chatroom });
         } else {
           const partner = await wallet.referenceCodes.find(
