@@ -42,6 +42,7 @@ module.exports = {
     return code;
   },
   verifyOTP: async (code) => {
+    console.log(code)
     const otp = await OTP.findOne({ code });
     const authorizedotp = await jwt.verify(otp.token, process.env.jwtKey);
     if (!authorizedotp) {

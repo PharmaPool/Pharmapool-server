@@ -8,6 +8,7 @@ dotenv.config();
 
 const Business = require("../model/business");
 const User = require("../model/user");
+const Admin = require("../model/admin");
 
 const error = require("../util/error-handling/errorHandler");
 
@@ -378,13 +379,117 @@ module.exports.getAllBusinesses = async (req, res, next) => {
 
     const businesses = [...business].reverse();
 
+    res.status(200).json({
+      message: "all businesses fetched successfully",
+      businesses,
+      loggedIn: false,
+    });
+  } catch (err) {
+    error.error(err, next);
+  }
+};
+
+// Register admin
+module.exports.registerAdmin = async (req, res, next) => {
+  const email = req.body.email;
+
+  try {
+    // validate user
+    const emailExists = await Admin.findOne({ email });
+    if (emailExists) {
+      error.errorHandler(res, "email already exists", "admin");
+      return;
+    }
+
+    // continue if there are no errors
+    const admin = new Admin({ email });
+    await admin.save();
+
+    res.status(200).json({
+      success: true,
+      message: "admin registered successfully",
+      type: "admin",
+    });
+  } catch (err) {
+    error.error(err, next);
+  }
+};
+
+// Admin login
+module.exports.adminEmailLogin = async (req, res, next) => {
+  const email = req.body.email;
+
+  try {
+    // validate user
+    const admin = await Admin.findOne({ email });
+    if (!admin) {
+      error.errorHandler(res, "admin not found", "admin");
+      return;
+    }
+
+    // continue if there are no errors
+    const adminCode = await generateOTP();
+
+    admin.passkey = adminCode.code;
+    await admin.save();
+
+    await mailer(
+      email,
+      "admin verification",
+      "Use this one time passkey to login",
+      "admin",
+      adminCode.code
+    );
+
     res
       .status(200)
-      .json({
-        message: "all businesses fetched successfully",
-        businesses,
-        loggedIn: false,
-      });
+      .json({ message: "an OTP has been sent to your mail", type: "admin" });
+  } catch (err) {
+    error.error(err, next);
+  }
+};
+
+// Admin passkey login
+module.exports.adminPasskeyLogin = async (req, res, next) => {
+  const email = req.body.email,
+    passkey = req.body.passkey;
+
+  console.log(passkey);
+
+  try {
+    // validate user
+    const admin = await Admin.findOne({ email });
+    if (!admin) {
+      error.errorHandler(res, "admin not found", "admin");
+      return;
+    }
+
+    // verify otp
+    const otp = verifyOTP(passkey);
+    if (!otp) {
+      error.errorHandler(res, "invalid otp", "otp");
+      return;
+    }
+
+    // validate passkey
+    const passkeyMatch = passkey === admin.passkey;
+    if (!passkeyMatch) {
+      error.errorHandler(res, "invalid admin", "admin");
+      return;
+    }
+
+    // continue if there are no errors
+
+    // Create jsonwebtoken
+    const token = jwt.sign(
+      { user: admin, email: admin.email },
+      process.env.jwtKey,
+      { algorithm: "HS256", expiresIn: process.env.jwtExpirySeconds }
+    );
+
+    res
+      .status(200)
+      .json({ success: true, message: "admin signin successful", token });
   } catch (err) {
     error.error(err, next);
   }

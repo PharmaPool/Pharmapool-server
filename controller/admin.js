@@ -22,115 +22,19 @@ const [
   require("../model/transactions"),
   require("../model/user"),
   require("../model/wallet"),
-  require("../model/admin"),
 ];
 
-const [mailer, error, { generateAdminCode }, bcrypt, jwt, dotenv] = [
+const [mailer, error, bcrypt, jwt, dotenv] = [
   require("../util/nodemailer"),
   require("../util/error-handling/errorHandler"),
-  require("../util/idGenerator"),
+
   require("bcryptjs"),
   require("jsonwebtoken"),
   require("dotenv"),
 ];
+const { generateOTP, verifyOTP } = require("../util/otp");
 
 dotenv.config();
-
-// Register admin
-module.exports.registerAdmin = async (req, res, next) => {
-  const email = req.body.email;
-
-  try {
-    // validate user
-    const emailExists = await Admin.findOne({ email });
-    if (emailExists) {
-      error.errorHandler(res, "email already exists", "admin");
-      return;
-    }
-
-    // continue if there are no errors
-    const admin = new Admin({ email });
-    await admin.save();
-
-    res
-      .status(200)
-      .json({ message: "admin registered successfully", type: "admin" });
-  } catch (err) {
-    error.error(err, next);
-  }
-};
-
-// Admin login
-module.exports.adminEmailLogin = async (req, res, next) => {
-  const email = req.body.email;
-
-  try {
-    // validate user
-    const admin = await Admin.findOne({ email });
-    if (!admin) {
-      error.errorHandler(res, "admin not found", "admin");
-      return;
-    }
-
-    // continue if there are no errors
-    const adminCode = generateAdminCode();
-    const hashedCode = bcrypt.hash(adminCode, 12);
-
-    admin.passkey = hashedCode;
-    await admin.save();
-
-    await mailer(
-      email,
-      "admin verification",
-      "Use this one time passkey to login",
-      "admin",
-      code
-    );
-
-    res
-      .status(200)
-      .json({ message: "an OTP has been sent to your mail", type: "admin" });
-  } catch (err) {
-    error.error(err, next);
-  }
-};
-
-// Admin passkey login
-module.exports.adminPasskeyLogin = async (req, res, next) => {
-  const email = req.body.email,
-    passkey = req.body.passkey;
-
-  try {
-    // validate user
-    const admin = await Admin.findOne({ email });
-    if (!admin) {
-      error.errorHandler(res, "admin not found", "admin");
-      return;
-    }
-
-    // validate passkey
-    const passkeyMatch = await bcrypt.compare(passkey, admin.passkey);
-    if (!passkeyMatch) {
-      error.errorHandler(res, "invalid admin", "admin");
-      return;
-    }
-
-    // continue if there are no errors
-
-    // Create jsonwebtoken
-    const token = jwt.sign(
-      { user: admin, email: admin.email },
-      process.env.jwtKey,
-      { algorithm: "HS256", expiresIn: process.env.jwtExpirySeconds }
-    );
-
-    res
-      .status(200)
-      .json({ success: true, message: "admin signin successful", token });
-  } catch (err) {
-    error.error(err, next);
-  }
-};
 
 // Get all users
 module.exports.getAllUsers = async (req, res, next) => {
@@ -157,7 +61,7 @@ module.exports.getAllUsers = async (req, res, next) => {
 // Get user
 module.exports.getUser = async (req, res, next) => {
   const adminId = req._id,
-    userId = req.params._id;
+    userId = req.params.id;
 
   try {
     // validate admin
@@ -191,7 +95,7 @@ module.exports.suspendUser = async (req, res, next) => {};
 // delete user
 module.exports.deleteUser = async (req, res, next) => {
   const adminId = req._id,
-    userId = req.params._id;
+    userId = req.params.id;
 
   try {
     // validate admin
@@ -251,7 +155,9 @@ module.exports.getAllPosts = async (req, res, next) => {
     // continue if there are no errors
 
     // get all posts
-    const posts = await Post.find();
+    const posts = await Post.find()
+      .populate("creator", "firstName lastName fullName profileImage")
+      .populate("likes", "firstName lastName fullName profileImage");
 
     // send response to client
     res
@@ -265,7 +171,7 @@ module.exports.getAllPosts = async (req, res, next) => {
 // get post
 module.exports.getPost = async (req, res, next) => {
   const adminId = req._id,
-    postId = req.params._id;
+    postId = req.params.id;
 
   try {
     // validate admin
@@ -276,7 +182,14 @@ module.exports.getPost = async (req, res, next) => {
     }
 
     // get and validate post
-    const post = await Post.findById(postId);
+    const post = await Post.findById(postId)
+      .populate("likes", "firstName lastName fullName profileImage")
+      .populate("comments.user", "firstName lastName fullName profileImage")
+      .populate(
+        "comments.replies.user",
+        "firstName lastName fullName profileImage"
+      )
+      .populate("creator", "firstName lastName fullName profileImage");
     if (!post) {
       error.errorHandler(res, "post not found", "post");
       return;
@@ -296,7 +209,7 @@ module.exports.getPost = async (req, res, next) => {
 // delete post
 module.exports.deletePost = async (req, res, next) => {
   const adminId = req._id,
-    postId = req.params._id,
+    postId = req.params.id,
     userId = req.body._id;
 
   try {
@@ -342,12 +255,92 @@ module.exports.deletePost = async (req, res, next) => {
 };
 
 // get all wallets
-module.exports.getAllWallets = async (req, res, next) => {};
+module.exports.getAllWallets = async (req, res, next) => {
+  const adminId = req._id;
+
+  try {
+    // validate admin
+    const admin = await Admin.findById(adminId);
+    if (!admin) {
+      error.errorHandler(res, "invalid admin", "admin");
+      return;
+    }
+
+    // get all wallets
+    const wallets = await Wallet.find()
+      .populate({
+        path: "referenceCodes",
+        populate: {
+          path: "user",
+          select: "firstName lastName fullName profileImage",
+        },
+      })
+      .populate({
+        path: "supplier",
+        populate: {
+          path: "user",
+          select: "firstName lastName fullName profileImage",
+        },
+      });
+    if (!wallets) {
+      error.errorHandler(res, "wallets not found", "wallets");
+      return;
+    }
+
+    // continue if there are no errors
+
+    res.status(200).json({ wallets });
+  } catch (err) {
+    error.error(err, next);
+  }
+};
+
+// get wallet
+module.exports.getWallet = async (req, res, next) => {
+  const adminId = req._id,
+    walletId = req.params.id;
+
+  try {
+    // validate admin
+    const admin = await Admin.findById(adminId);
+    if (!admin) {
+      error.errorHandler(res, "invalid admin", "admin");
+      return;
+    }
+
+    // get all wallets
+    const wallet = await Wallet.findById(walletId)
+      .populate({
+        path: "referenceCodes",
+        populate: {
+          path: "user",
+          select: "firstName lastName fullName profileImage",
+        },
+      })
+      .populate({
+        path: "supplier",
+        populate: {
+          path: "user",
+          select: "firstName lastName fullName profileImage",
+        },
+      });
+    if (!wallet) {
+      error.errorHandler(res, "wallets not found", "wallets");
+      return;
+    }
+
+    // continue if there are no errors
+
+    res.status(200).json({ wallet });
+  } catch (err) {
+    error.error(err, next);
+  }
+};
 
 // verify wallet transaction
 module.exports.verifyWalletTransaction = async (req, res, next) => {};
 
-// get business
+// get businesses
 module.exports.getBusinesses = async (req, res, next) => {
   const adminId = req._id;
 
@@ -362,12 +355,17 @@ module.exports.getBusinesses = async (req, res, next) => {
     // continue if there are no errors
 
     // get all businesses
-    const businesses = await Business.find();
+    const businesses = await Business.find()
+      .populate("creator", "firstName lastName profileImage")
+      .populate("product")
+      .populate("interestedPartners");
 
     // send response to client
-    res
-      .status(200)
-      .json({ success: true, message: "all businesses fetched successfully" });
+    res.status(200).json({
+      success: true,
+      message: "all businesses fetched successfully",
+      businesses,
+    });
   } catch (err) {
     error.error(err, next);
   }
@@ -387,7 +385,10 @@ module.exports.getBusiness = async (req, res, next) => {
     }
 
     // get and validate business
-    const business = await Business.findById(businessId);
+    const business = await Business.findById(businessId)
+      .populate("creator", "firstName lastName profileImage")
+      .populate("product")
+      .populate("interestedPartners");
     if (!business) {
       error.errorHandler(res, "business not found", "business");
       return;
@@ -433,7 +434,10 @@ module.exports.deleteBusiness = async (req, res, next) => {
     }
 
     // get all businesses
-    const businesses = await Business.find();
+    const businesses = await Business.find()
+      .populate("creator", "firstName lastName profileImage")
+      .populate("product")
+      .populate("interestedPartners");
 
     // continue if there are no errors
 
@@ -457,7 +461,7 @@ module.exports.deleteBusiness = async (req, res, next) => {
 // close business
 module.exports.closeBusiness = async (req, res, next) => {
   const adminId = req._id,
-    businessId = req.params._id;
+    businessId = req.params.id;
 
   try {
     // vallidate admin
@@ -468,7 +472,10 @@ module.exports.closeBusiness = async (req, res, next) => {
     }
 
     // get and validate business
-    const business = await Business.findById(businessId);
+    const business = await Business.findById(businessId)
+      .populate("creator", "firstName lastName profileImage")
+      .populate("product")
+      .populate("interestedPartners");
     if (!business) {
       error.errorHandler(res, "business not found", "business");
       return;
@@ -533,13 +540,11 @@ module.exports.getPharmacies = async (req, res, next) => {
     const pharmacies = await Pharmacy.find();
 
     // send response to client
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "pharmacies fetched successfully",
-        pharmacies,
-      });
+    res.status(200).json({
+      success: true,
+      message: "pharmacies fetched successfully",
+      pharmacies,
+    });
   } catch (err) {
     error.error(err, next);
   }
@@ -547,11 +552,84 @@ module.exports.getPharmacies = async (req, res, next) => {
 
 // get single pharmacy
 module.exports.getPharmacy = async (req, res, next) => {
-  
+  const adminId = req._id,
+    pharmacyId = req.params.id;
+
+  try {
+    // validate admin
+    const admin = await Admin.findById(adminId);
+    if (!admin) {
+      error.errorHandler(res, "invalid admin", "admin");
+      return;
+    }
+
+    // validate
+    const pharmacy = await Pharmacy.findById(pharmacyId);
+    if (!pharmacy) {
+      error.errorHandler(res, "pharmacy not found", "pharmacy");
+      return;
+    }
+
+    // continue if no error
+
+    // send response to client
+    res.status(200).json({ pharmacy });
+  } catch (err) {
+    error.error(err, next);
+  }
 };
 
 module.exports.deletePharmacy = async (req, res, next) => {};
 
-module.exports.getInventories = async (req, res, next) => {};
+module.exports.getInventories = async (req, res, next) => {
+  const adminId = req._id;
 
-module.exports.getInventory = async (req, res, next) => {};
+  try {
+    // validate admin
+    const admin = await Admin.findById(adminId);
+    if (!admin) {
+      error.errorHandler(res, "invalid admin", "admin");
+      return;
+    }
+
+    // validate inventories
+    const inventories = await Inventory.find();
+    if (!inventories) {
+      error.errorHandler(res, "inventories not found", "inventories");
+      return;
+    }
+
+    // continue if there are no errors
+
+    res.status(200).json({ inventories });
+  } catch (err) {
+    error.error(err, next);
+  }
+};
+
+module.exports.getInventory = async (req, res, next) => {
+  const adminId = req._id,
+    inventoryId = req.params.id;
+
+  try {
+    // validate admin
+    const admin = await Admin.findById(adminId);
+    if (!admin) {
+      error.errorHandler(res, "invalid admin", "admin");
+      return;
+    }
+
+    // validate inventories
+    const inventory = await Inventory.findById(inventoryId);
+    if (!inventory) {
+      error.errorHandler(res, "inventory not found", "inventory");
+      return;
+    }
+
+    // continue if there are no errors
+
+    res.status(200).json({ inventory });
+  } catch (err) {
+    error.error(err, next);
+  }
+};
