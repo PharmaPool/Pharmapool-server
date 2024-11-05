@@ -156,8 +156,13 @@ module.exports.getAllPosts = async (req, res, next) => {
 
     // get all posts
     const posts = await Post.find()
-      .populate("creator", "firstName lastName fullName profileImage")
-      .populate("likes", "firstName lastName fullName profileImage");
+      .populate("likes", "firstName lastName fullName profileImage")
+      .populate("comments.user", "firstName lastName fullName profileImage")
+      .populate(
+        "comments.replies.user",
+        "firstName lastName fullName profileImage"
+      )
+      .populate("creator", "firstName lastName fullName profileImage");
 
     // send response to client
     res
@@ -228,27 +233,19 @@ module.exports.deletePost = async (req, res, next) => {
     }
 
     // get and validate post
-    const post = await Post.findById(postId);
+    const post = await Post.findByIdAndDelete(postId);
     if (!post) {
       error.errorHandler(res, "post not found", "post");
       return;
     }
 
-    // get all posts
-    const posts = await Post.find();
-
-    // pull post from posts and from user post array
-    await posts.pull(postId);
-    await user.posts.pull(postId);
-
-    // save changes
-    posts.save();
+    user.posts.pull(postId);
     user.save();
 
     // send response to client
     res
       .status(200)
-      .json({ success: true, message: "post deleted successfully" });
+      .json({ success: true, message: "post deleted successfully", post });
   } catch (err) {
     error.error(err, next);
   }
@@ -358,7 +355,7 @@ module.exports.getBusinesses = async (req, res, next) => {
     const businesses = await Business.find()
       .populate("creator", "firstName lastName profileImage")
       .populate("product")
-      .populate("interestedPartners");
+      .populate("interestedPartners.user");
 
     // send response to client
     res.status(200).json({
@@ -409,7 +406,7 @@ module.exports.getBusiness = async (req, res, next) => {
 module.exports.deleteBusiness = async (req, res, next) => {
   const adminId = req._id,
     userId = req.body._id,
-    businessId = req.params._id;
+    businessId = req.params.id;
 
   try {
     // validate admin
@@ -427,27 +424,19 @@ module.exports.deleteBusiness = async (req, res, next) => {
     }
 
     // get and validate business
-    const business = await Business.findById(businessId);
+    const business = await Business.findOneAndDelete(businessId);
     if (!business) {
       error.errorHandler(res, "business not found", "business");
       return;
     }
 
     // get all businesses
-    const businesses = await Business.find()
-      .populate("creator", "firstName lastName profileImage")
-      .populate("product")
-      .populate("interestedPartners");
+    // const businesses = await Business.findOneAndDelete(businessId);
 
     // continue if there are no errors
 
-    // pull business from businesses and user businesses array
-    await businesses.pull(businessId);
-    await user.businesses.pull(businessId);
-
     // save changes
-    await businesses.save();
-    await user.save();
+    // await businesses.save();
 
     // send response to client
     res
@@ -482,7 +471,7 @@ module.exports.closeBusiness = async (req, res, next) => {
     }
 
     // continue if there are no errors
-    business.status = false;
+    business.status = true;
 
     // save changes
     business.save();
@@ -564,7 +553,7 @@ module.exports.getPharmacy = async (req, res, next) => {
     }
 
     // validate
-    const pharmacy = await Pharmacy.findById(pharmacyId);
+    const pharmacy = await Pharmacy.findById(pharmacyId).populate("inventory");
     if (!pharmacy) {
       error.errorHandler(res, "pharmacy not found", "pharmacy");
       return;
@@ -607,6 +596,7 @@ module.exports.getInventories = async (req, res, next) => {
   }
 };
 
+// get inventory
 module.exports.getInventory = async (req, res, next) => {
   const adminId = req._id,
     inventoryId = req.params.id;

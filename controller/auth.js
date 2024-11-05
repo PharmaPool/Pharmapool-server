@@ -454,8 +454,6 @@ module.exports.adminPasskeyLogin = async (req, res, next) => {
   const email = req.body.email,
     passkey = req.body.passkey;
 
-  console.log(passkey);
-
   try {
     // validate user
     const admin = await Admin.findOne({ email });
