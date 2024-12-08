@@ -105,29 +105,62 @@ module.exports.deleteUser = async (req, res, next) => {
       return;
     }
 
-    // get and validate user
-    const user = await User.findById(userId);
-    if (!user) {
-      error.errorHandler(res, "user not found", "user");
-      return;
-    }
+    // 1. Remove references to user in 'requests' field
+    await User.updateMany(
+      {},
+      {
+        $pull: {
+          "requests.content": { user: userId },
+          "requests.content": { friendId: userId },
+        },
+      }
+    );
 
-    // continue if there are no errors
+    // 2. Remove user from their own posts (likes, comments, replies)
+    await Post.updateMany({ likes: userId }, { $pull: { likes: userId } });
+    await Post.updateMany(
+      { "comments.user": userId },
+      { $pull: { "comments.$[].user": userId } }
+    );
+    await Post.updateMany(
+      { "comments.replies.user": userId },
+      { $pull: { "comments.$[].replies.$[].user": userId } }
+    );
+    await Post.updateMany(
+      { "comments.likes": userId },
+      { $pull: { "comments.$[].likes": userId } }
+    );
+
+    // 3. Remove the user from all chats (single chats and chatrooms)
+    await Chat.updateMany(
+      { "users.userId": userId },
+      { $pull: { users: { userId: userId } } }
+    );
+    await Chatroom.updateMany({ users: userId }, { $pull: { users: userId } });
+
+    // 4. Remove the user's associated products
+    await Product.deleteMany({ owner: userId });
+
+    // 5. Remove the user's business (if exists)
+    await Business.deleteMany({ creator: userId });
+
+    // 6. Remove user from pharmacies
+    await Pharmacy.updateMany({ owner: userId }, { $pull: { owner: userId } });
+
+    // 7. Optionally, remove any inventory associated with the user
+    await Inventory.updateMany({ owner: userId }, { $pull: { owner: userId } });
+
+    // 8. Finally, remove the user from the database
+    await User.findByIdAndDelete(userId);
 
     // get all users
     const users = await User.find();
-
-    // pull user from users
-    users.pull(userId);
-
-    // save changes
-    const updatedUsers = await users.save();
 
     // send response to client
     res.status(200).json({
       success: true,
       message: "user deleted successfully",
-      updatedUsers,
+      users,
     });
   } catch (err) {
     error.error(err, next);
