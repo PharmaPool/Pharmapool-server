@@ -934,8 +934,7 @@ module.exports.getNotifications = async (req, res, next) => {
  * Clear Notifications *
  ***********************/
 module.exports.clearNotifications = async (req, res, next) => {
-  const userId = req._id,
-    type = req.body.type;
+  const userId = req._id;
 
   try {
     const user = await User.findById(userId, "notifications");
@@ -945,7 +944,7 @@ module.exports.clearNotifications = async (req, res, next) => {
       return;
     }
     // continue if there are no errors
-    if (type === "clear") user.notifications.content = [];
+    user.notifications.content = [];
 
     // set notification count to 0
     user.notifications.count = 0;
@@ -956,7 +955,12 @@ module.exports.clearNotifications = async (req, res, next) => {
     io.getIO().emit("notification");
 
     // send response to client
-    res.status(200).json({ message: "notifications cleared" });
+    res
+      .status(200)
+      .json({
+        message: "notifications cleared",
+        notifications: user.notifications,
+      });
   } catch (err) {
     error.error(err, next);
   }

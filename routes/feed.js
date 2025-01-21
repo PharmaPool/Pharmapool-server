@@ -30,12 +30,15 @@ router.delete("/post/:postId/comment/reply", feedController.removeReply);
 
 // post comment reply like routes
 router.post("/post/:postId/comment/reply/like", feedController.addLikeToReply);
-router.delete("/post/:postId/comment/reply/like", feedController.removeLikeFromReply);
+router.delete(
+  "/post/:postId/comment/reply/like",
+  feedController.removeLikeFromReply
+);
 
 // notifications routes
-router.get("/notifications/:_id", feedController.getNotifications);
-router.delete("/notifications/:_id", feedController.clearNotifications);
+router.get("/notifications", feedController.getNotifications);
+router.delete("/notifications", feedController.clearNotifications);
 
 router.delete("/messages/count", feedController.clearMessagesCount);
 
-module.exports = router
+module.exports = router;
