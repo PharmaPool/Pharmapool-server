@@ -1,6 +1,7 @@
 const ChatRoom = require("../model/chatroom");
 const Chat = require("../model/chat");
 const Wallet = require("../model/wallet");
+const Donor = require("../model/donor");
 const dotenv = require("dotenv");
 dotenv.config();
 

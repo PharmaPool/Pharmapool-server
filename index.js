@@ -20,6 +20,7 @@ const profileRoutes = require("./routes/profile");
 const businessRoutes = require("./routes/business");
 const walletRoutes = require("./routes/wallet");
 const adminRoutes = require("./routes/admin");
+const donorRoutes = require("./routes/donor");
 
 const app = express();
 
@@ -62,6 +63,7 @@ app.use((req, res, next) => {
 
 // Auth route which bypasses auth check
 app.use("/api/auth", authRoutes);
+app.use("/api/donor", donorRoutes);
 
 // Authentication check
 app.use(isAuth);
