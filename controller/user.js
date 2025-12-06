@@ -15,6 +15,7 @@ const { getPost, populatePost } = require("../util/post");
 const { getChat, validChatUser, validAdmin } = require("../util/chat");
 const { notifyFriend, notifyFriendRequest } = require("../util/notifications");
 const { uploadImage, removeImage } = require("../util/images/images");
+const mailer = require("../util/nodemailer");
 
 /***************
  * Create Post *
@@ -55,6 +56,22 @@ module.exports.createPost = async (req, res, next) => {
       const createdPost = await post.save();
 
       io.getIO().emit("posts", { action: "create post" });
+
+      // send mail notification to all users if mail was made by pharmapool
+      if (
+        user.details.email === "pharmapoolng@gmail.com" ||
+        user.details.email === "info@pharmapoolng.com"
+      ) {
+        // get all users
+        const users = await User.find();
+        users.forEach((user) =>
+          mailer(
+            user.email,
+            "New Post",
+            `A new post has been made by ${user.fullName} on Pharmapool. Check it out!`
+          )
+        );
+      }
 
       // Return response back to client
       res
